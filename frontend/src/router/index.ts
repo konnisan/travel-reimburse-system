@@ -1,5 +1,4 @@
 import { createRouter, createWebHistory } from 'vue-router'
-import HomeView from '../views/HomeView.vue'
 import { useAuthStore } from '@/stores/auth'
 
 const router = createRouter({
@@ -7,47 +6,57 @@ const router = createRouter({
   routes: [
     {
       path: '/',
-      name: 'home',
-      component: HomeView,
+      redirect: '/reimburse/list'
+    },
+    {
+      path: '/login',
+      name: 'login',
+      component: () => import('@/views/LoginView.vue'),
+      meta: {
+        public: true
+      }
+    },
+    {
+      path: '/reimburse/list',
+      name: 'reimburse-list',
+      component: () => import('@/views/ReimburseListView.vue'),
       meta: {
         requiresAuth: true,
         permission: 'reimburse:list'
       }
     },
     {
-      path: '/login',
-      name: 'login',
-      component: () => import('../components/LoginPanel.vue'),
+      path: '/reimburse/detail/:id',
+      name: 'reimburse-detail',
+      component: () => import('@/views/ReimburseDetailView.vue'),
       meta: {
-        public: true
+        requiresAuth: true,
+        permission: 'reimburse:view'
       }
     },
     {
-      path: '/about',
-      name: 'about',
-      // route level code-splitting
-      // this generates a separate chunk (About.[hash].js) for this route
-      // which is lazy-loaded when the route is visited.
-      component: () => import('../views/AboutView.vue'),
-      meta: {
-        requiresAuth: true
-      }
+      path: '/:pathMatch(.*)*',
+      redirect: '/reimburse/list'
     }
   ]
 })
 
 router.beforeEach((to) => {
   const auth = useAuthStore()
+
   if (to.meta.public) {
-    return auth.isAuthenticated ? '/' : true
+    return auth.isAuthenticated ? '/reimburse/list' : true
   }
+
   if (to.meta.requiresAuth && !auth.isAuthenticated) {
     return { path: '/login', query: { redirect: to.fullPath } }
   }
+
   const permission = to.meta.permission
   if (typeof permission === 'string' && !auth.hasPermission(permission)) {
-    return '/'
+    return '/reimburse/list'
   }
+
   return true
 })
 

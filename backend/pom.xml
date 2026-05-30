@@ -11,8 +11,8 @@
     <groupId>com.kjd</groupId>
     <artifactId>backend</artifactId>
     <version>0.0.1-SNAPSHOT</version>
-    <name>demo-day3</name>
-    <description>demo-day3</description>
+    <name>backend</name>
+    <description>backend</description>
     <url/>
     <licenses>
         <license/>

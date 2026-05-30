@@ -41,11 +41,14 @@ import type { FormInstance, FormRules } from 'element-plus'
 import { ElMessage } from 'element-plus'
 import { Lock, User } from '@element-plus/icons-vue'
 import { useAuthStore } from '@/stores/auth'
+import { useRoute, useRouter } from 'vue-router'
 
 const auth = useAuthStore()
 const formRef = ref<FormInstance>()
 const loading = ref(false)
 const remember = ref(true)
+const route = useRoute()
+const router = useRouter()
 
 const form = reactive({
   username: 'admin',
@@ -60,10 +63,17 @@ const rules: FormRules = {
 const handleLogin = async () => {
   const valid = await formRef.value?.validate().catch(() => false)
   if (!valid) return
+
   loading.value = true
   try {
     await auth.signIn(form)
     ElMessage.success('登录成功')
+
+    const redirect = typeof route.query.redirect === 'string'
+      ? route.query.redirect
+      : '/'
+
+    router.push(redirect)
   } finally {
     loading.value = false
   }
