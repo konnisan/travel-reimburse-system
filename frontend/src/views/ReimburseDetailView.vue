@@ -1,165 +1,6 @@
 <template>
   <main class="page">
-    <section v-if="!isDetailRoute" class="page-header">
-      <div>
-        <h1>差旅报销单</h1>
-        <p>列表页 reimburse/list；详情页 reimburse/detail/{id}</p>
-      </div>
-      <div class="header-actions">
-        <div class="user-summary">
-          <el-avatar :size="30">{{ userInitial }}</el-avatar>
-          <div>
-            <strong>{{ auth.user?.displayName }}</strong>
-            <span>{{ auth.roles.join(' / ') }}</span>
-          </div>
-        </div>
-        <el-button v-if="can('user:manage')" :icon="UserFilled" @click="userManageVisible = true">用户管理</el-button>
-        <el-button v-if="!isDetailRoute" :icon="Refresh" @click="handleReset">重置</el-button>
-        <el-button
-          v-if="!isDetailRoute && can('reimburse:list')"
-          type="primary"
-          plain
-          :icon="Search"
-          :loading="loading"
-          @click="handleSearch"
-        >
-          查询
-        </el-button>
-        <el-button v-if="!isDetailRoute && can('reimburse:create')" type="primary" :icon="Plus" @click="handleCreateDraft">
-          新增
-        </el-button>
-        <el-button :icon="SwitchButton" @click="handleLogout">退出</el-button>
-      </div>
-    </section>
-
-    <el-form v-if="!isDetailRoute" ref="queryFormRef" class="query-panel" :model="queryForm" label-width="108px">
-      <el-row :gutter="18">
-        <el-col :span="6">
-          <el-form-item label="报销单号" prop="reimBillNo">
-            <el-input v-model.trim="queryForm.reimBillNo" placeholder="请输入" clearable />
-          </el-form-item>
-        </el-col>
-        <el-col :span="6">
-          <el-form-item label="报销标题" prop="title">
-            <el-input v-model.trim="queryForm.title" placeholder="请输入" clearable />
-          </el-form-item>
-        </el-col>
-        <el-col :span="6">
-          <el-form-item label="报销事由" prop="reason">
-            <el-input v-model.trim="queryForm.reason" placeholder="请输入" clearable />
-          </el-form-item>
-        </el-col>
-        <el-col :span="6">
-          <el-form-item label="单据状态" prop="billStatus">
-            <el-select v-model="queryForm.billStatus" placeholder="请选择" clearable>
-              <el-option label="草稿" value="0" />
-              <el-option label="已完成" value="1" />
-              <el-option label="已作废" value="2" />
-            </el-select>
-          </el-form-item>
-        </el-col>
-      </el-row>
-      <el-row :gutter="18">
-        <el-col :span="6">
-          <el-form-item label="费用归属公司" prop="reimCompanyId">
-            <el-select v-model="queryForm.reimCompanyId" placeholder="请选择" clearable filterable>
-              <el-option v-for="company in companyOptions" :key="company.id" :label="company.name" :value="company.id" />
-            </el-select>
-          </el-form-item>
-        </el-col>
-        <el-col :span="6">
-          <el-form-item label="报销部门" prop="reimDepartmentId">
-            <el-select v-model="queryForm.reimDepartmentId" placeholder="请选择" clearable filterable>
-              <el-option v-for="department in departmentOptions" :key="department.id" :label="department.name" :value="department.id" />
-            </el-select>
-          </el-form-item>
-        </el-col>
-        <el-col :span="6">
-          <el-form-item label="报销人" prop="reimburserId">
-            <el-select v-model="queryForm.reimburserId" placeholder="请选择" clearable filterable>
-              <el-option v-for="employee in employeeOptions" :key="employee.id" :label="employee.name" :value="employee.id" />
-            </el-select>
-          </el-form-item>
-        </el-col>
-        <el-col :span="6">
-          <el-form-item label="业务类型" prop="businessTypeId">
-            <el-tree-select v-model="queryForm.businessTypeId" :data="businessTypeOptions" placeholder="请选择" clearable check-strictly />
-          </el-form-item>
-        </el-col>
-      </el-row>
-    </el-form>
-
-    <section v-if="!isDetailRoute" class="table-card">
-      <el-table
-        v-loading="loading"
-        :data="tableData"
-        border
-        stripe
-        height="486"
-        size="small"
-        empty-text="暂无数据"
-        @selection-change="handleSelectionChange"
-      >
-        <el-table-column type="selection" width="42" align="center" />
-        <el-table-column type="index" label="序号" width="56" align="center" />
-        <el-table-column label="操作" width="132" fixed="left" align="center">
-          <template #default="{ row }">
-            <el-tooltip content="查看详情">
-              <el-button v-if="can('reimburse:view')" link type="primary" :icon="View" @click="handleOpenDetail(row, 'view')" />
-            </el-tooltip>
-            <el-tooltip content="编辑">
-              <el-button v-if="can('reimburse:edit')" link type="primary" :icon="Edit" @click="handleOpenDetail(row, 'edit')" />
-            </el-tooltip>
-            <el-tooltip content="作废">
-              <el-button
-                v-if="can('reimburse:invalid')"
-                link
-                type="danger"
-                :icon="CircleClose"
-                :disabled="row.billStatus === '2'"
-                @click="handleInvalid(row)"
-              />
-            </el-tooltip>
-          </template>
-        </el-table-column>
-        <el-table-column prop="reimBillNo" label="报销单号" min-width="150" show-overflow-tooltip>
-          <template #default="{ row }">
-            <el-link type="primary" :underline="false" :disabled="!can('reimburse:view')" @click="handleOpenDetail(row, 'view')">
-              {{ row.reimBillNo || '-' }}
-            </el-link>
-          </template>
-        </el-table-column>
-        <el-table-column prop="title" label="报销标题" min-width="180" show-overflow-tooltip />
-        <el-table-column prop="billStatusName" label="状态" width="96" align="center">
-          <template #default="{ row }">
-            <el-tag :type="getBillStatusTag(row.billStatus)" effect="light">{{ row.billStatusName }}</el-tag>
-          </template>
-        </el-table-column>
-        <el-table-column prop="reimburserName" label="报销人" min-width="112" />
-        <el-table-column prop="reimDepartmentName" label="报销部门" min-width="140" show-overflow-tooltip />
-        <el-table-column prop="reimCompanyName" label="费用归属公司" min-width="160" show-overflow-tooltip />
-        <el-table-column prop="businessTypeName" label="业务类型" min-width="130" show-overflow-tooltip />
-        <el-table-column prop="reason" label="报销事由" min-width="220" show-overflow-tooltip />
-        <el-table-column prop="subsidyAmount" label="补助金额" width="120" align="right">
-          <template #default="{ row }">{{ formatMoney(row.subsidyAmount) }}</template>
-        </el-table-column>
-        <el-table-column prop="createTime" label="创建时间" width="168" />
-      </el-table>
-
-      <div class="pagination">
-        <el-pagination
-          v-model:current-page="pagination.current"
-          v-model:page-size="pagination.size"
-          :page-sizes="[10, 20, 50, 100]"
-          :total="pagination.total"
-          layout="total, sizes, prev, pager, next, jumper"
-          @size-change="handleSearch"
-          @current-change="handleSearch"
-        />
-      </div>
-    </section>
-
-    <section v-if="isDetailRoute" class="detail-page">
+    <section class="detail-page">
       <div class="bill-shell">
           <header class="bill-header">
             <div class="bill-left">
@@ -331,26 +172,6 @@
       </div>
     </section>
 
-    <el-dialog v-model="userManageVisible" title="用户管理" width="860px">
-      <el-table :data="userRows" border size="small">
-        <el-table-column prop="username" label="用户名" width="140" />
-        <el-table-column prop="displayName" label="姓名" width="140" />
-        <el-table-column prop="roles" label="角色" min-width="180">
-          <template #default="{ row }">
-            <el-tag v-for="role in row.roles" :key="role" effect="light" class="role-tag">{{ role }}</el-tag>
-          </template>
-        </el-table-column>
-        <el-table-column prop="status" label="状态" width="100" align="center">
-          <template #default="{ row }">
-            <el-tag :type="row.status === '启用' ? 'success' : 'info'" effect="light">{{ row.status }}</el-tag>
-          </template>
-        </el-table-column>
-      </el-table>
-      <template #footer>
-        <el-button @click="userManageVisible = false">关闭</el-button>
-      </template>
-    </el-dialog>
-
     <el-dialog v-model="tripDialogVisible" :title="tripDialogTitle" width="760px">
       <el-alert
         class="trip-alert"
@@ -407,75 +228,152 @@
       </template>
     </el-dialog>
 
-    <el-dialog v-model="subsidyDialogVisible" title="补助信息" width="1080px">
+    <el-dialog v-model="subsidyDialogVisible" title="补助日历" width="1080px" class="subsidy-dialog">
       <template v-if="editingSubsidy">
-        <el-descriptions :column="3" border class="subsidy-meta">
-          <el-descriptions-item label="出差类型">{{ businessTypeName }}</el-descriptions-item>
-          <el-descriptions-item label="开始日期">{{ editingSubsidy.startDate }}</el-descriptions-item>
-          <el-descriptions-item label="结束日期">{{ editingSubsidy.endDate }}</el-descriptions-item>
-          <el-descriptions-item label="行程天数地点">{{ editingSubsidy.route }}，{{ editingSubsidy.subsidyDays }}天</el-descriptions-item>
-          <el-descriptions-item label="标准总额">{{ formatMoney(editingSubsidy.applyAmount) }}</el-descriptions-item>
-          <el-descriptions-item label="补助金额">{{ formatMoney(editingSubsidy.subsidyAmount) }}</el-descriptions-item>
-        </el-descriptions>
-        <el-table :data="editingSubsidy.calendarList" border size="small" class="calendar-table">
-          <el-table-column width="72" align="center">
-            <template #header>
-              <el-checkbox :model-value="isAllCalendarChecked(editingSubsidy)" :indeterminate="isAllCalendarIndeterminate(editingSubsidy)" :disabled="isReadonly" @change="toggleAllCalendar" />
-            </template>
-            <template #default="{ row }">
-              <el-checkbox :model-value="isCalendarRowChecked(row)" :indeterminate="isCalendarRowIndeterminate(row)" :disabled="isReadonly" @change="toggleCalendarRow(row, Boolean($event))" />
-            </template>
-          </el-table-column>
-          <el-table-column prop="travelDate" label="出差日期" width="130" />
-          <el-table-column prop="weekName" label="星期" width="90" />
-          <el-table-column prop="cityName" label="补助城市" width="110" />
-          <el-table-column label="餐费补助" min-width="190">
-            <template #header>
-              <el-checkbox :model-value="isCalendarColumnChecked('meal')" :indeterminate="isCalendarColumnIndeterminate('meal')" :disabled="isReadonly" @change="toggleCalendarColumn('meal', Boolean($event))">
-                餐费补助
-              </el-checkbox>
-            </template>
-            <template #default="{ row }">
-              <div class="amount-cell">
-                <el-checkbox v-model="row.mealChecked" :disabled="isReadonly" @change="normalizeCalendarAmount(row, 'meal')" />
-                <el-input-number v-model="row.mealAmount" :min="0" :max="row.mealStandardAmount" :precision="2" :disabled="isReadonly || !row.mealChecked" @change="normalizeCalendarAmount(row, 'meal')" />
-                <span>标准 {{ formatMoney(row.mealStandardAmount) }}</span>
+        <div class="subsidy-calendar-layout">
+          <aside class="subsidy-sidebar">
+            <div class="trip-type-row">
+              <span>出差类型</span>
+              <strong>{{ businessTypeName || '-' }}</strong>
+            </div>
+            <div class="trip-range">
+              <span>开始日期</span>
+              <div class="range-line">
+                <i />
+                <span>{{ editingSubsidy.startDate }}</span>
               </div>
-            </template>
-          </el-table-column>
-          <el-table-column label="交通补助" min-width="190">
-            <template #header>
-              <el-checkbox :model-value="isCalendarColumnChecked('traffic')" :indeterminate="isCalendarColumnIndeterminate('traffic')" :disabled="isReadonly" @change="toggleCalendarColumn('traffic', Boolean($event))">
-                交通补助
-              </el-checkbox>
-            </template>
-            <template #default="{ row }">
-              <div class="amount-cell">
-                <el-checkbox v-model="row.trafficChecked" :disabled="isReadonly" @change="normalizeCalendarAmount(row, 'traffic')" />
-                <el-input-number v-model="row.trafficAmount" :min="0" :max="row.trafficStandardAmount" :precision="2" :disabled="isReadonly || !row.trafficChecked" @change="normalizeCalendarAmount(row, 'traffic')" />
-                <span>标准 {{ formatMoney(row.trafficStandardAmount) }}</span>
+              <el-button type="primary" class="route-chip">{{ editingSubsidy.route }} {{ editingSubsidy.subsidyDays }}天</el-button>
+              <span>结束日期</span>
+              <div class="range-line">
+                <i />
+                <span>{{ editingSubsidy.endDate }}</span>
               </div>
-            </template>
-          </el-table-column>
-          <el-table-column label="通讯补助" min-width="190">
-            <template #header>
-              <el-checkbox :model-value="isCalendarColumnChecked('communication')" :indeterminate="isCalendarColumnIndeterminate('communication')" :disabled="isReadonly" @change="toggleCalendarColumn('communication', Boolean($event))">
-                通讯补助
-              </el-checkbox>
-            </template>
-            <template #default="{ row }">
-              <div class="amount-cell">
-                <el-checkbox v-model="row.communicationChecked" :disabled="isReadonly" @change="normalizeCalendarAmount(row, 'communication')" />
-                <el-input-number v-model="row.communicationAmount" :min="0" :max="row.communicationStandardAmount" :precision="2" :disabled="isReadonly || !row.communicationChecked" @change="normalizeCalendarAmount(row, 'communication')" />
-                <span>标准 {{ formatMoney(row.communicationStandardAmount) }}</span>
+            </div>
+            <div class="subsidy-total-box">
+              <div>
+                <span>补助总额</span>
+                <strong>CNY {{ formatMoney(editingSubsidy.subsidyAmount) }}</strong>
               </div>
-            </template>
-          </el-table-column>
-        </el-table>
-      </template>
-      <template #footer>
-        <el-button @click="subsidyDialogVisible = false">关闭</el-button>
-        <el-button type="primary" :disabled="isReadonly" @click="confirmSubsidyCalendar">确认</el-button>
+              <div>
+                <span>标准总额</span>
+                <strong>CNY {{ formatMoney(editingSubsidy.applyAmount) }}</strong>
+              </div>
+              <div>
+                <span>补助金额</span>
+                <strong>CNY {{ formatMoney(editingSubsidy.subsidyAmount) }}</strong>
+              </div>
+            </div>
+          </aside>
+
+          <section class="calendar-panel">
+            <div class="calendar-panel-head">
+              <h3>补助日历</h3>
+              <el-checkbox
+                :model-value="isAllCalendarChecked(editingSubsidy)"
+                :indeterminate="isAllCalendarIndeterminate(editingSubsidy)"
+                :disabled="isReadonly"
+                @change="toggleAllCalendar(Boolean($event))"
+              >
+                全选
+              </el-checkbox>
+            </div>
+            <div class="subsidy-calendar-table">
+              <div class="calendar-grid calendar-grid-head">
+                <div>出差日期</div>
+                <div>补助地点</div>
+                <div>
+                  <el-checkbox
+                    :model-value="isCalendarColumnChecked('meal')"
+                    :indeterminate="isCalendarColumnIndeterminate('meal')"
+                    :disabled="isReadonly"
+                    @change="toggleCalendarColumn('meal', Boolean($event))"
+                  >
+                    餐费补助
+                  </el-checkbox>
+                </div>
+                <div>
+                  <el-checkbox
+                    :model-value="isCalendarColumnChecked('traffic')"
+                    :indeterminate="isCalendarColumnIndeterminate('traffic')"
+                    :disabled="isReadonly"
+                    @change="toggleCalendarColumn('traffic', Boolean($event))"
+                  >
+                    交通补助
+                  </el-checkbox>
+                </div>
+                <div>
+                  <el-checkbox
+                    :model-value="isCalendarColumnChecked('communication')"
+                    :indeterminate="isCalendarColumnIndeterminate('communication')"
+                    :disabled="isReadonly"
+                    @change="toggleCalendarColumn('communication', Boolean($event))"
+                  >
+                    通讯补助
+                  </el-checkbox>
+                </div>
+              </div>
+              <div v-for="row in editingSubsidy.calendarList" :key="row.calendarId" class="calendar-grid calendar-grid-row">
+                <div class="date-cell">
+                  <strong>{{ row.travelDate }}</strong>
+                  <span>{{ row.weekName }}</span>
+                  <el-checkbox
+                    :model-value="isCalendarRowChecked(row)"
+                    :indeterminate="isCalendarRowIndeterminate(row)"
+                    :disabled="isReadonly"
+                    @change="toggleCalendarRow(row, Boolean($event))"
+                  />
+                </div>
+                <div class="city-cell">{{ row.cityName }}</div>
+                <div class="subsidy-amount-cell">
+                  <span>CNY {{ formatMoney(row.mealStandardAmount) }} / 天</span>
+                  <div>
+                    <el-checkbox v-model="row.mealChecked" :disabled="isReadonly" @change="normalizeCalendarAmount(row, 'meal')" />
+                    <el-input-number
+                      v-model="row.mealAmount"
+                      controls-position="right"
+                      :controls="false"
+                      :min="0"
+                      :max="row.mealStandardAmount"
+                      :precision="2"
+                      :disabled="isReadonly || !row.mealChecked"
+                      @change="normalizeCalendarAmount(row, 'meal')"
+                    />
+                  </div>
+                </div>
+                <div class="subsidy-amount-cell">
+                  <span>CNY {{ formatMoney(row.trafficStandardAmount) }} / 天</span>
+                  <div>
+                    <el-checkbox v-model="row.trafficChecked" :disabled="isReadonly" @change="normalizeCalendarAmount(row, 'traffic')" />
+                    <el-input-number
+                      v-model="row.trafficAmount"
+                      :controls="false"
+                      :min="0"
+                      :max="row.trafficStandardAmount"
+                      :precision="2"
+                      :disabled="isReadonly || !row.trafficChecked"
+                      @change="normalizeCalendarAmount(row, 'traffic')"
+                    />
+                  </div>
+                </div>
+                <div class="subsidy-amount-cell">
+                  <span>CNY {{ formatMoney(row.communicationStandardAmount) }} / 天</span>
+                  <div>
+                    <el-checkbox v-model="row.communicationChecked" :disabled="isReadonly" @change="normalizeCalendarAmount(row, 'communication')" />
+                    <el-input-number
+                      v-model="row.communicationAmount"
+                      :controls="false"
+                      :min="0"
+                      :max="row.communicationStandardAmount"
+                      :precision="2"
+                      :disabled="isReadonly || !row.communicationChecked"
+                      @change="normalizeCalendarAmount(row, 'communication')"
+                    />
+                  </div>
+                </div>
+              </div>
+            </div>
+          </section>
+        </div>
       </template>
     </el-dialog>
   </main>
@@ -490,30 +388,21 @@ import {
   ArrowLeft,
   ArrowRight,
   Calendar,
-  CircleClose,
   Delete,
   DocumentCopy,
   Edit,
-  Plus,
-  Refresh,
-  Search,
-  SwitchButton,
-  UserFilled,
-  View
+  Plus
 } from '@element-plus/icons-vue'
 import {
-  invalidTravelReimburse,
+  queryTravelReimburseBaseData,
   queryTravelReimburseDetail,
-  queryTravelReimbursePageList,
   saveTravelReimburseDraft,
   submitTravelReimburse,
   type CostShare,
   type ManualTrip,
-  type QueryTravelReimbursePageListData,
   type SubsidyCalendar,
   type SubsidyInfo,
-  type TravelReimburseDetail,
-  type TravelReimbursePageRow
+  type TravelReimburseDetail
 } from '@/api/reimburse'
 import { useAuthStore } from '@/stores/auth'
 import { useRoute, useRouter } from 'vue-router'
@@ -612,44 +501,18 @@ interface DetailForm {
 const auth = useAuthStore()
 const route = useRoute()
 const router = useRouter()
-const queryFormRef = ref<FormInstance>()
 const detailFormRef = ref<FormInstance>()
 const tripFormRef = ref<FormInstance>()
-const isDetailRoute = computed(() => Boolean(route.params.id))
-const loading = ref(false)
 const saving = ref(false)
-const userManageVisible = ref(false)
-const detailVisible = ref(false)
 const tripDialogVisible = ref(false)
 const subsidyDialogVisible = ref(false)
 const detailMode = ref<DetailMode>('view')
 const hasUnsavedNewDraft = ref(false)
-const tableData = ref<TravelReimbursePageRow[]>([])
-const selectedRows = ref<TravelReimbursePageRow[]>([])
-const localDetailMap = ref<Record<string, TravelReimburseDetail>>({})
 const tripDialogMode = ref<TripDialogMode>('add')
 const editingTripIndex = ref(-1)
 const editingSubsidyIndex = ref(-1)
 const today = new Date().toISOString().slice(0, 10)
 const subsidyNotice = '1、请根据实际出差日期选择补助 2、出差期间当日有用餐安排的请自行核减当日餐补 3、出差期间当日有用车的，请自行核减当日交补'
-
-const userRows = ref([
-  { username: 'admin', displayName: '系统管理员', roles: ['ADMIN'], status: '启用' },
-  { username: 'finance', displayName: '财务专员', roles: ['FINANCE'], status: '启用' },
-  { username: 'employee', displayName: '普通员工', roles: ['EMPLOYEE'], status: '启用' }
-])
-
-const pagination = reactive({ current: 1, size: 10, total: 0, pages: 0 })
-const queryForm = reactive<QueryTravelReimbursePageListData>({
-  reimBillNo: '',
-  title: '',
-  reason: '',
-  reimCompanyId: '',
-  reimDepartmentId: '',
-  reimburserId: '',
-  businessTypeId: '',
-  billStatus: ''
-})
 
 const detailForm = reactive<DetailForm>({
   id: '',
@@ -790,7 +653,6 @@ const tripList = ref<TripRow[]>([])
 const subsidyList = ref<SubsidyRow[]>([])
 
 const isReadonly = computed(() => detailMode.value === 'view')
-const userInitial = computed(() => auth.user?.displayName?.slice(0, 1) || auth.user?.username?.slice(0, 1) || 'U')
 const tripDialogTitle = computed(() => (tripDialogMode.value === 'edit' ? '编辑补录行程' : tripDialogMode.value === 'copy' ? '复制补录行程' : '补录行程'))
 const businessTypeFlatOptions = computed(() => flattenBusinessTypes(businessTypeOptions))
 const businessTypeName = computed(() => findBusinessType(detailForm.businessTypeId)?.label ?? '')
@@ -1078,66 +940,6 @@ const handleClearRemark = async () => {
   }
 }
 
-const mockRows: TravelReimbursePageRow[] = [
-  {
-    id: '25',
-    reimBillNo: 'CLBX202605220001',
-    billStatus: '0',
-    billStatusName: '草稿',
-    reimburserId: '13AB3A3F72409002',
-    reimburserNo: '74541',
-    reimburserName: '徐年年',
-    reimDepartmentId: '13AB8D7B52A9B002',
-    reimDepartmentNo: '072001',
-    reimDepartmentName: '客户成功事业部',
-    reimCompanyId: '19218A262C976000',
-    reimCompanyNo: '0408',
-    reimCompanyName: '胜意科技上海分公司',
-    businessTypeId: '1B5FEB7DD4396000',
-    businessTypeName: '项目出差',
-    title: '上海客户拜访差旅报销',
-    reason: '拜访重点客户并完成合同评审',
-    subsidyAmount: 180,
-    createTime: '2026-05-22 09:20:00'
-  }
-]
-
-const buildRowFromDetail = (detail: TravelReimburseDetail): TravelReimbursePageRow => {
-  const employee = findOption(employeeOptions, detail.reimburserId)
-  const department = findOption(departmentOptions, detail.reimDepartmentId)
-  const company = findOption(companyOptions, detail.reimCompanyId)
-  const businessType = findBusinessType(detail.businessTypeId)
-  return {
-    id: detail.id,
-    reimBillNo: detail.reimBillNo ?? '',
-    billStatus: detail.billStatus ?? '0',
-    billStatusName: detail.billStatusName ?? '草稿',
-    reimburserId: detail.reimburserId,
-    reimburserNo: detail.reimburserNo ?? employee?.no ?? '',
-    reimburserName: detail.reimburserName ?? employee?.name ?? '',
-    reimDepartmentId: detail.reimDepartmentId,
-    reimDepartmentNo: detail.reimDepartmentNo ?? department?.no ?? '',
-    reimDepartmentName: detail.reimDepartmentName ?? department?.name ?? '',
-    reimCompanyId: detail.reimCompanyId,
-    reimCompanyNo: detail.reimCompanyNo ?? company?.no ?? '',
-    reimCompanyName: detail.reimCompanyName ?? company?.name ?? '',
-    businessTypeId: detail.businessTypeId,
-    businessTypeName: detail.businessTypeName ?? businessType?.label ?? '',
-    title: detail.title,
-    reason: detail.reason,
-    subsidyAmount: Number(detail.totalSubsidyAmount ?? expenseSummary.value.subsidyAmount),
-    createTime: `${detail.billDate || today} 00:00:00`
-  }
-}
-
-const upsertLocalRow = (row: TravelReimbursePageRow) => {
-  const tableIndex = tableData.value.findIndex((item) => item.id === row.id)
-  if (tableIndex >= 0) tableData.value.splice(tableIndex, 1, row)
-  else tableData.value.unshift(row)
-  pagination.total = tableData.value.length
-  pagination.pages = Math.max(1, Math.ceil(tableData.value.length / pagination.size))
-}
-
 const toApiTrip = (row: TripRow): ManualTrip => ({
   tripId: row.tripId,
   travelerId: row.travelerId,
@@ -1310,36 +1112,6 @@ const applyDetailToForm = (detail: TravelReimburseDetail) => {
   })
 }
 
-const fillMockList = () => {
-  tableData.value = mockRows
-  pagination.total = mockRows.length
-  pagination.pages = 1
-}
-
-const handleSearch = async () => {
-  loading.value = true
-  try {
-    const result = await queryTravelReimbursePageList(pagination.current, pagination.size, normalizeQueryData())
-    tableData.value = result.records
-    pagination.total = result.total
-    pagination.pages = result.pages
-  } catch (error) {
-    console.warn(error)
-    fillMockList()
-    ElMessage.warning('接口未连接，已显示模板示例数据')
-  } finally {
-    loading.value = false
-  }
-}
-
-const normalizeQueryData = () => Object.fromEntries(Object.entries(queryForm).filter(([, value]) => value !== undefined && value !== '')) as QueryTravelReimbursePageListData
-
-const handleReset = () => {
-  queryFormRef.value?.resetFields()
-  pagination.current = 1
-  handleSearch()
-}
-
 const resetDetailForm = () => {
   Object.assign(detailForm, {
     id: '',
@@ -1364,16 +1136,7 @@ const openDraftDetail = (id: string, redirectUrl: string) => {
   hasUnsavedNewDraft.value = true
   resetDetailForm()
   detailForm.id = id
-  detailVisible.value = true
   ElMessage.info('已打开新草稿，点击保存草稿或提交后才会入库：' + redirectUrl)
-}
-
-const handleCreateDraft = () => {
-  if (!can('reimburse:create')) {
-    ElMessage.warning('没有新增权限')
-    return
-  }
-  openDraftDetail(uid('draft'), 'reimburse/detail/new')
 }
 
 const shouldConfirmUnsavedDraft = () => detailMode.value === 'create' && hasUnsavedNewDraft.value
@@ -1404,52 +1167,7 @@ const handleCloseDetail = async () => {
     return
   }
   if (!(await confirmDiscardDraft())) return
-  detailVisible.value = false
-  if (isDetailRoute.value) router.push('/reimburse/list')
-}
-
-const handleBeforeCloseDetail = (done: () => void) => {
-  confirmDiscardDraft().then((confirmed) => {
-    if (confirmed) done()
-  })
-}
-
-const handleOpenDetail = (row: TravelReimbursePageRow, mode: DetailMode) => {
-  if (mode === 'view' && !can('reimburse:view')) {
-    ElMessage.warning('没有查看权限')
-    return
-  }
-  if (mode === 'edit' && !can('reimburse:edit')) {
-    ElMessage.warning('没有编辑权限')
-    return
-  }
-  detailMode.value = mode
-  hasUnsavedNewDraft.value = false
-  resetDetailForm()
-  const localDetail = localDetailMap.value[row.id]
-  if (localDetail) {
-    applyDetailToForm(localDetail)
-  } else {
-    Object.assign(detailForm, {
-      id: row.id,
-      reimBillNo: row.reimBillNo,
-      billDate: row.createTime.slice(0, 10),
-      billStatus: row.billStatus,
-      billStatusName: row.billStatusName,
-      reimburserId: row.reimburserId,
-      reimDepartmentId: row.reimDepartmentId,
-      reimCompanyId: row.reimCompanyId,
-      businessTypeId: row.businessTypeId,
-      title: row.title,
-      reason: row.reason
-    })
-  }
-  detailVisible.value = true
-  queryTravelReimburseDetail(row.id)
-    .then((detail) => {
-      if (!localDetailMap.value[row.id]) applyDetailToForm(detail)
-    })
-    .catch(() => undefined)
+  router.push('/reimburse/list')
 }
 
 const openRouteDetail = () => {
@@ -1464,32 +1182,6 @@ const openRouteDetail = () => {
   resetDetailForm()
   detailForm.id = id
   queryTravelReimburseDetail(id).then(applyDetailToForm).catch(() => ElMessage.error('详情加载失败'))
-}
-
-const handleSelectionChange = (rows: TravelReimbursePageRow[]) => {
-  selectedRows.value = rows
-}
-
-const handleInvalid = async (row: TravelReimbursePageRow) => {
-  if (!can('reimburse:invalid')) {
-    ElMessage.warning('没有作废权限')
-    return
-  }
-  const { value } = await ElMessageBox.prompt('请输入作废原因', '作废差旅报销单', {
-    confirmButtonText: '确认作废',
-    cancelButtonText: '取消',
-    inputType: 'textarea'
-  })
-  try {
-    await invalidTravelReimburse(row.id, value)
-    ElMessage.success('作废成功')
-    handleSearch()
-  } catch (error) {
-    console.warn(error)
-    row.billStatus = '2'
-    row.billStatusName = '已作废'
-    ElMessage.warning('接口未连接，已在本地模拟作废')
-  }
 }
 
 const validateBeforeSubmit = async () => {
@@ -1512,8 +1204,6 @@ const handleSaveDraft = async () => {
   try {
     const result = await saveTravelReimburseDraft(detail)
     const savedDetail = result.detail ?? detail
-    localDetailMap.value[savedDetail.id] = savedDetail
-    upsertLocalRow(buildRowFromDetail(savedDetail))
     applyDetailToForm(savedDetail)
     hasUnsavedNewDraft.value = false
     detailMode.value = 'edit'
@@ -1548,14 +1238,11 @@ const handleSubmit = async () => {
       billStatus: result.billStatus,
       billStatusName: result.billStatusName
     }
-    localDetailMap.value[submittedDetail.id] = submittedDetail
-    upsertLocalRow(buildRowFromDetail(submittedDetail))
     applyDetailToForm(submittedDetail)
     hasUnsavedNewDraft.value = false
     detailMode.value = 'view'
     await ElMessageBox.alert('提交成功', '提示', { confirmButtonText: '确定', type: 'success' })
-    detailVisible.value = false
-    if (isDetailRoute.value) router.push('/reimburse/list')
+    router.push('/reimburse/list')
   } catch (error) {
     console.warn(error)
     const message = typeof error === 'object' && error && 'msg' in error ? String((error as { msg?: string }).msg) : '提交失败'
@@ -1565,19 +1252,8 @@ const handleSubmit = async () => {
   }
 }
 
-const handleLogout = async () => {
-  if (!(await confirmDiscardDraft())) return
-  await auth.signOut()
-  detailVisible.value = false
-  userManageVisible.value = false
-  ElMessage.success('已退出登录')
-  router.replace('/login')
-}
-
 const handleAuthExpired = () => {
   auth.clearSession()
-  detailVisible.value = false
-  userManageVisible.value = false
   router.replace('/login')
 }
 
@@ -1591,8 +1267,8 @@ onMounted(() => {
   window.addEventListener('auth:expired', handleAuthExpired)
   if (auth.isAuthenticated) {
     auth.hydrateUser()
-    if (isDetailRoute.value) openRouteDetail()
-    else handleSearch()
+    queryTravelReimburseBaseData().catch((error) => console.warn(error))
+    openRouteDetail()
   }
 })
 
@@ -1610,97 +1286,16 @@ onUnmounted(() => {
   font-size: 14px;
 }
 
-.page-header,
-.query-panel,
-.table-card {
-  margin-bottom: 12px;
-  border: 1px solid #e5e7eb;
-  border-radius: 6px;
-  background: #fff;
-}
-
-.page-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 16px;
-  padding: 14px 16px;
-}
-
-.page-header h1 {
-  margin: 0;
-  font-size: 18px;
-  font-weight: 600;
-}
-
-.page-header p {
-  margin: 4px 0 0;
-  color: #6b7280;
-  font-size: 12px;
-}
-
-.header-actions,
-.user-summary,
-.section-title,
-.amount-cell {
+.section-title {
   display: flex;
   align-items: center;
 }
 
-.header-actions {
-  gap: 8px;
-}
-
-.user-summary {
-  gap: 8px;
-  padding: 4px 8px;
-  border: 1px solid #dbe3ef;
-  border-radius: 6px;
-}
-
-.user-summary div {
-  display: grid;
-  gap: 2px;
-  min-width: 86px;
-}
-
-.user-summary strong {
-  font-size: 13px;
-  line-height: 1.1;
-}
-
-.user-summary span {
-  color: #64748b;
-  font-size: 12px;
-  line-height: 1.1;
-}
-
-.query-panel {
-  padding: 16px 16px 2px;
-}
-
-.query-panel :deep(.el-form-item) {
-  margin-bottom: 14px;
-}
-
-.query-panel :deep(.el-select),
-.query-panel :deep(.el-tree-select),
-.query-panel :deep(.el-date-editor),
 .bill-form :deep(.el-select),
 .bill-form :deep(.el-tree-select),
 .bill-form :deep(.el-date-editor),
 .trip-alert {
   width: 100%;
-}
-
-.table-card {
-  padding: 16px 16px 14px;
-}
-
-.pagination {
-  display: flex;
-  justify-content: flex-end;
-  padding-top: 14px;
 }
 
 .detail-page {
@@ -1809,40 +1404,244 @@ onUnmounted(() => {
   background: #eef2f6;
 }
 
-.role-tag {
-  margin-right: 6px;
-}
-
-.trip-alert,
-.subsidy-meta {
+.trip-alert {
   margin-bottom: 12px;
 }
 
-.calendar-table {
-  margin-top: 10px;
+.subsidy-dialog :deep(.el-dialog__body) {
+  padding: 8px 0 0;
 }
 
-.amount-cell {
+.subsidy-calendar-layout {
+  display: grid;
+  grid-template-columns: 230px minmax(0, 1fr);
+  min-height: 390px;
+  border-top: 1px solid #eef2f6;
+}
+
+.subsidy-sidebar {
+  padding: 16px 18px;
+  border-right: 1px solid #e5e7eb;
+  background: #fff;
+}
+
+.trip-type-row {
+  display: flex;
+  gap: 18px;
+  align-items: center;
+  margin-bottom: 18px;
+  font-size: 12px;
+}
+
+.trip-type-row span,
+.trip-range > span,
+.subsidy-total-box span {
+  color: #4b5563;
+}
+
+.trip-type-row strong {
+  color: #ff6b00;
+  font-weight: 600;
+}
+
+.trip-range {
+  display: grid;
+  grid-template-columns: 58px 1fr;
+  row-gap: 8px;
+  align-items: center;
+  margin-bottom: 32px;
+  font-size: 12px;
+}
+
+.range-line {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.range-line i {
+  width: 8px;
+  height: 8px;
+  border: 2px solid #168fdc;
+  border-radius: 50%;
+  background: #fff;
+}
+
+.route-chip {
+  grid-column: 1 / -1;
+  height: 30px;
+  margin: 0 0 2px;
+  border-radius: 0;
+}
+
+.subsidy-total-box {
+  display: grid;
+  gap: 14px;
+  padding-top: 18px;
+  border-top: 1px solid #edf1f5;
+  font-size: 12px;
+}
+
+.subsidy-total-box div {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.subsidy-total-box strong {
+  color: #ff4d00;
+  font-weight: 600;
+}
+
+.calendar-panel {
+  min-width: 0;
+  padding: 16px;
+}
+
+.calendar-panel-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 8px;
+}
+
+.calendar-panel-head h3 {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.subsidy-calendar-table {
+  border: 1px solid #e5e7eb;
+  overflow-x: auto;
+}
+
+.calendar-grid {
+  display: grid;
+  grid-template-columns: 150px 112px repeat(3, minmax(150px, 1fr));
+  min-width: 760px;
+}
+
+.calendar-grid > div {
+  min-height: 42px;
+  padding: 7px 10px;
+  border-right: 1px solid #eef2f6;
+  border-bottom: 1px solid #eef2f6;
+  background: #fff;
+}
+
+.calendar-grid > div:last-child {
+  border-right: 0;
+}
+
+.calendar-grid-head > div {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 34px;
+  background: #fafafa;
+  color: #374151;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.calendar-grid-row:last-child > div {
+  border-bottom: 0;
+}
+
+.date-cell {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  column-gap: 8px;
+  align-items: center;
+}
+
+.date-cell strong {
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.date-cell span {
+  color: #4b5563;
+  font-size: 12px;
+}
+
+.date-cell .el-checkbox {
+  grid-row: 1 / span 2;
+  grid-column: 2;
+}
+
+.city-cell {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #374151;
+  font-size: 12px;
+}
+
+.subsidy-amount-cell {
+  display: grid;
+  gap: 4px;
+  justify-items: center;
+}
+
+.subsidy-amount-cell > span {
+  color: #ff5a00;
+  font-size: 12px;
+}
+
+.subsidy-amount-cell > div {
+  display: flex;
+  align-items: center;
   gap: 8px;
 }
 
-.amount-cell :deep(.el-input-number) {
-  width: 104px;
+.subsidy-amount-cell :deep(.el-input-number) {
+  width: 72px;
 }
 
-.amount-cell span {
-  color: #64748b;
+.subsidy-amount-cell :deep(.el-input__wrapper) {
+  min-height: 22px;
+  padding: 0 5px;
+  border-radius: 2px;
+}
+
+.subsidy-amount-cell :deep(.el-input__inner) {
+  height: 22px;
+  color: #6b7280;
   font-size: 12px;
-  white-space: nowrap;
+}
+
+.subsidy-dialog :deep(.el-checkbox__label) {
+  font-size: 12px;
+}
+
+.subsidy-dialog :deep(.el-checkbox) {
+  height: 18px;
+}
+
+.subsidy-dialog :deep(.el-checkbox__inner) {
+  width: 12px;
+  height: 12px;
+}
+
+.subsidy-dialog :deep(.el-checkbox__inner::after) {
+  left: 3px;
+  top: 0;
+}
+
+.subsidy-dialog :deep(.el-dialog__header) {
+  margin-right: 0;
+  padding: 14px 16px 10px;
+  border-bottom: 1px solid #eef2f6;
+}
+
+.subsidy-dialog :deep(.el-dialog__title) {
+  font-size: 14px;
+  font-weight: 600;
 }
 
 @media (max-width: 900px) {
-  .page-header,
-  .header-actions {
-    align-items: stretch;
-    flex-direction: column;
-  }
-
   .bill-header {
     grid-template-columns: 1fr;
     height: auto;

@@ -32,6 +32,7 @@ import com.kjd.backend.mapper.FkReimItineraryMapper;
 import com.kjd.backend.mapper.FkReimMainMapper;
 import com.kjd.backend.mapper.FkReimSubsidyMapper;
 import com.kjd.backend.mapper.FkSubsidyCalendarMapper;
+import com.kjd.backend.service.RedisSupportService;
 import com.kjd.backend.service.TravelReimburseService;
 import com.kjd.backend.vo.CalculateCostShareVO;
 import com.kjd.backend.vo.CalculateSubsidyCalendarVO;
@@ -85,17 +86,20 @@ public class TravelReimburseServiceImpl implements TravelReimburseService {
     private final FkReimSubsidyMapper subsidyMapper;
     private final FkSubsidyCalendarMapper calendarMapper;
     private final FkReimApportionMapper apportionMapper;
+    private final RedisSupportService redisSupportService;
 
     public TravelReimburseServiceImpl(FkReimMainMapper mainMapper,
                                       FkReimItineraryMapper itineraryMapper,
                                       FkReimSubsidyMapper subsidyMapper,
                                       FkSubsidyCalendarMapper calendarMapper,
-                                      FkReimApportionMapper apportionMapper) {
+                                      FkReimApportionMapper apportionMapper,
+                                      RedisSupportService redisSupportService) {
         this.mainMapper = mainMapper;
         this.itineraryMapper = itineraryMapper;
         this.subsidyMapper = subsidyMapper;
         this.calendarMapper = calendarMapper;
         this.apportionMapper = apportionMapper;
+        this.redisSupportService = redisSupportService;
     }
 
     @Override
@@ -228,6 +232,10 @@ public class TravelReimburseServiceImpl implements TravelReimburseService {
 
     @Override
     public TravelReimburseBaseDataVO queryTravelReimburseBaseData(QueryTravelReimburseBaseDataDTO dto) {
+        TravelReimburseBaseDataVO cached = redisSupportService.getBaseDataCache();
+        if (cached != null) {
+            return cached;
+        }
         TravelReimburseBaseDataVO vo = new TravelReimburseBaseDataVO();
         ReimCompanyVO company = new ReimCompanyVO();
         company.setReimCompanyId("C001");
@@ -284,6 +292,7 @@ public class TravelReimburseServiceImpl implements TravelReimburseService {
         vo.setBusinessTypeList(Arrays.asList(rootType, travelType));
         vo.setCityList(Arrays.asList(beijing, shanghai, hangzhou));
         vo.setProjectList(Collections.singletonList(project));
+        redisSupportService.setBaseDataCache(vo);
         return vo;
     }
 

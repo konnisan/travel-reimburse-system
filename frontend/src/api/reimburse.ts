@@ -179,6 +179,15 @@ export interface SubmitTravelReimburseResult {
   billStatusName: string
 }
 
+export interface TravelReimburseBaseData {
+  reimCompanyList: unknown[]
+  departmentList: unknown[]
+  employeeList: unknown[]
+  businessTypeList: unknown[]
+  cityList: unknown[]
+  projectList: unknown[]
+}
+
 const basePath = '/b2c/reimburse/fcecf/fccapi'
 
 export function queryTravelReimbursePageList(
@@ -206,6 +215,14 @@ export function queryTravelReimburseDetail(id: string) {
     `${basePath}/COMM_REIMBURSE_QueryTravelReimburseDetail`,
     { data: { id } },
     { loading: true }
+  )
+}
+
+export function queryTravelReimburseBaseData() {
+  return request.post<TravelReimburseBaseData>(
+    `${basePath}/COMM_REIMBURSE_QueryTravelReimburseBaseData`,
+    {},
+    { loading: false }
   )
 }
 

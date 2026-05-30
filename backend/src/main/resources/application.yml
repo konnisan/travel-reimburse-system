@@ -4,6 +4,13 @@ spring:
     username: ${DB_USERNAME:root}
     password: ${DB_PASSWORD:123456}
     driver-class-name: com.mysql.cj.jdbc.Driver
+  data:
+    redis:
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6379}
+      database: ${REDIS_DATABASE:1}
+      password: ${REDIS_PASSWORD:123456}
+      timeout: ${REDIS_TIMEOUT:2s}
   sql:
     init:
       mode: always
@@ -17,3 +24,8 @@ app:
   jwt:
     secret: ${JWT_SECRET:backend-travel-reimburse-jwt-secret-change-me-2026}
     expires-in-seconds: ${JWT_EXPIRES_IN_SECONDS:7200}
+  cache:
+    base-data-ttl-seconds: ${BASE_DATA_CACHE_TTL_SECONDS:1800}
+  security:
+    login-max-failures: ${LOGIN_MAX_FAILURES:5}
+    login-lock-seconds: ${LOGIN_LOCK_SECONDS:300}
