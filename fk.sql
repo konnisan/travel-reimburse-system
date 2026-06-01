@@ -1,4 +1,4 @@
-/*
+﻿/*
  Navicat Premium Dump SQL
 
  Source Server         : sky
@@ -80,6 +80,7 @@ DROP TABLE IF EXISTS `fk_reim_main`;
 CREATE TABLE `fk_reim_main`  (
   `id` varchar(32) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL COMMENT '主键ID',
   `creation_time` varchar(32) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NULL DEFAULT NULL COMMENT '创建时间',
+  `bill_date` varchar(20) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NULL DEFAULT NULL COMMENT '单据日期',
   `reimbursement_title` varchar(32) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NULL DEFAULT NULL COMMENT '报销标题',
   `reimburser_id` varchar(32) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NULL DEFAULT NULL COMMENT '报销人ID',
   `reimburser_no` varchar(20) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NULL DEFAULT NULL COMMENT '报销人工号',
@@ -101,18 +102,19 @@ CREATE TABLE `fk_reim_main`  (
   `remarks` varchar(20) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NULL DEFAULT NULL COMMENT '备注信息',
   `reim_bill_no` varchar(32) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NULL DEFAULT NULL COMMENT '报销单号',
   `bill_status` varchar(2) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NULL DEFAULT '0' COMMENT '单据状态：0草稿 1已完成 2已作废',
+  `version` int NOT NULL DEFAULT 0 COMMENT '乐观锁版本号',
   PRIMARY KEY (`id`) USING BTREE
 ) ENGINE = InnoDB CHARACTER SET = utf8mb4 COLLATE = utf8mb4_general_ci COMMENT = '报销单主表' ROW_FORMAT = Dynamic;
 
 -- ----------------------------
 -- Records of fk_reim_main
 -- ----------------------------
-INSERT INTO `fk_reim_main` VALUES ('21a2fb7397a04999b26397ec7592e405', '2026-05-27 13:13:05', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, '0.00', '0.00', '0.00', '0.00', NULL, NULL, '2');
-INSERT INTO `fk_reim_main` VALUES ('36817d5ab1d54f5e8ece43b3b88c6212', '2026-05-27 13:14:27', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, '0.00', '0.00', '0.00', '0.00', NULL, NULL, '0');
-INSERT INTO `fk_reim_main` VALUES ('ac204bd355fc4ba8a0aabde625baebc0', '2026-05-27 13:15:57', '团建', '13AB3A3F72409002', '74541', '徐年年', '13AB8D7B52A9B002', '072001', '客户成功事业部', '1C54557F1782E000', '0407', '胜意科技北京分公司', '18F0916A8C2C4000', '1001001', '员工差旅活动', '团建', '0.00', '0.00', '0.00', '0.00', '', 'CLBX202605286979', '1');
-INSERT INTO `fk_reim_main` VALUES ('RM202605220001', '2026-05-22 09:30:00', '张三北京出差报销', 'U1001', '1001', '张三', 'D001', 'DEP001', '研发部', 'C001', 'COM001', '武汉科技有限公司', 'BT001', 'TRAVEL', '差旅报销', '项目需求调研', '450.00', '240.00', '150.00', '60.00', '北京客户现场调研', NULL, '0');
-INSERT INTO `fk_reim_main` VALUES ('RM202605220002', '2026-05-22 10:15:00', '李四上海出差报销', 'U1002', '1002', '李四', 'D002', 'DEP002', '市场部', 'C001', 'COM001', '武汉科技有限公司', 'BT001', 'TRAVEL', '差旅报销', '参加行业会议', '360.00', '180.00', '120.00', '60.00', '上海行业展会', NULL, '0');
-INSERT INTO `fk_reim_main` VALUES ('RM202605220003', '2026-05-22 11:00:00', '王五广州出差报销', 'U1003', '1003', '王五', 'D003', 'DEP003', '实施部', 'C002', 'COM002', '湖北信息技术有限公司', 'BT001', 'TRAVEL', '差旅报销', '系统上线支持', '520.00', '300.00', '160.00', '60.00', '广州项目上线', NULL, '0');
+INSERT INTO `fk_reim_main` VALUES ('21a2fb7397a04999b26397ec7592e405', '2026-05-27 13:13:05', '2026-05-27', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, '0.00', '0.00', '0.00', '0.00', NULL, NULL, '2', 0);
+INSERT INTO `fk_reim_main` VALUES ('36817d5ab1d54f5e8ece43b3b88c6212', '2026-05-27 13:14:27', '2026-05-27', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, '0.00', '0.00', '0.00', '0.00', NULL, NULL, '0', 0);
+INSERT INTO `fk_reim_main` VALUES ('ac204bd355fc4ba8a0aabde625baebc0', '2026-05-27 13:15:57', '2026-05-27', '团建', '13AB3A3F72409002', '74541', '徐年年', '13AB8D7B52A9B002', '072001', '客户成功事业部', '1C54557F1782E000', '0407', '胜意科技北京分公司', '18F0916A8C2C4000', '1001001', '员工差旅活动', '团建', '0.00', '0.00', '0.00', '0.00', '', 'CLBX202605286979', '1', 0);
+INSERT INTO `fk_reim_main` VALUES ('RM202605220001', '2026-05-22 09:30:00', '2026-05-22', '张三北京出差报销', 'U1001', '1001', '张三', 'D001', 'DEP001', '研发部', 'C001', 'COM001', '武汉科技有限公司', 'BT001', 'TRAVEL', '差旅报销', '项目需求调研', '450.00', '240.00', '150.00', '60.00', '北京客户现场调研', NULL, '0', 0);
+INSERT INTO `fk_reim_main` VALUES ('RM202605220002', '2026-05-22 10:15:00', '2026-05-22', '李四上海出差报销', 'U1002', '1002', '李四', 'D002', 'DEP002', '市场部', 'C001', 'COM001', '武汉科技有限公司', 'BT001', 'TRAVEL', '差旅报销', '参加行业会议', '360.00', '180.00', '120.00', '60.00', '上海行业展会', NULL, '0', 0);
+INSERT INTO `fk_reim_main` VALUES ('RM202605220003', '2026-05-22 11:00:00', '2026-05-22', '王五广州出差报销', 'U1003', '1003', '王五', 'D003', 'DEP003', '实施部', 'C002', 'COM002', '湖北信息技术有限公司', 'BT001', 'TRAVEL', '差旅报销', '系统上线支持', '520.00', '300.00', '160.00', '60.00', '广州项目上线', NULL, '0', 0);
 
 -- ----------------------------
 -- Table structure for fk_reim_subsidy

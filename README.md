@@ -1,10 +1,11 @@
-# Travel Reimburse System
+﻿# Travel Reimburse System
 
 差旅报销系统，采用前后端分离结构：
 
 - `backend/`：Spring Boot + MyBatis-Plus 后端服务
 - `frontend/`：Vue 3 + Vite 前端应用
-- `fk.sql`：数据库初始化脚本
+- `fk.sql`：完整数据库初始化脚本
+- `doc/`：旧数据库迁移脚本
 
 ## 环境要求
 
@@ -12,6 +13,7 @@
 - Maven 3.8+
 - Node.js 20+
 - MySQL 5.7+ 或 8.x
+- Redis 6+
 
 ## 数据库准备
 
@@ -21,19 +23,20 @@
 CREATE DATABASE IF NOT EXISTS fk DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci;
 ```
 
-导入初始化脚本：
+新环境直接导入完整初始化脚本即可，`fk.sql` 已包含 `bill_date` 和乐观锁字段 `version`：
 
 ```sh
 mysql -u root -p fk < fk.sql
 ```
 
-如果使用的是已经存在的旧数据库，并且 `fk_reim_main` 表还没有 `bill_date` 字段，需要执行一次迁移脚本：
+如果使用的是已经存在的旧数据库，需要补充字段：
 
 ```sh
 mysql -u root -p fk < doc/migration-add-bill-date.sql
+mysql -u root -p fk < doc/migration-add-optimistic-version.sql
 ```
 
-也可以手动执行：
+也可以在数据库管理工具里手动执行：
 
 ```sql
 ALTER TABLE fk_reim_main
@@ -44,6 +47,27 @@ SET bill_date = LEFT(creation_time, 10)
 WHERE bill_date IS NULL
   AND creation_time IS NOT NULL
   AND creation_time <> '';
+
+ALTER TABLE fk_reim_main
+  ADD COLUMN version INT NOT NULL DEFAULT 0 COMMENT '乐观锁版本号';
+```
+
+## Redis 准备
+
+后端默认连接 Redis：
+
+- 地址：`localhost`
+- 端口：`6379`
+- DB：`1`
+- 密码：`123456`
+
+如果本机 Redis 配置不同，可以通过环境变量覆盖：
+
+```powershell
+$env:REDIS_HOST = "localhost"
+$env:REDIS_PORT = "6379"
+$env:REDIS_DATABASE = "1"
+$env:REDIS_PASSWORD = "123456"
 ```
 
 ## 启动后端
@@ -54,36 +78,26 @@ WHERE bill_date IS NULL
 cd backend
 ```
 
-默认连接：
+默认数据库连接：
 
-- 数据库地址：`jdbc:mysql://localhost:3306/fk`
-- 数据库用户：`root`
-- 数据库密码：`123456`
-- 后端端口：`8080`
+- 地址：`jdbc:mysql://localhost:3306/fk?useUnicode=true&characterEncoding=utf-8&serverTimezone=Asia/Shanghai`
+- 用户名：`root`
+- 密码：`123456`
+- 端口：`8080`
 
-直接启动：
+启动：
 
 ```sh
 mvn spring-boot:run
 ```
 
-如需覆盖数据库连接或 JWT 配置，可以通过环境变量传入：
-
-```sh
-set DB_URL=jdbc:mysql://localhost:3306/fk?useUnicode=true^&characterEncoding=utf-8^&serverTimezone=Asia/Shanghai
-set DB_USERNAME=root
-set DB_PASSWORD=123456
-set JWT_SECRET=change-me
-set JWT_EXPIRES_IN_SECONDS=7200
-mvn spring-boot:run
-```
-
-PowerShell 示例：
+如需覆盖数据库或 JWT 配置：
 
 ```powershell
 $env:DB_USERNAME = "root"
 $env:DB_PASSWORD = "123456"
 $env:JWT_SECRET = "change-me"
+$env:JWT_EXPIRES_IN_SECONDS = "7200"
 mvn spring-boot:run
 ```
 
@@ -102,7 +116,7 @@ npm install
 npm run dev
 ```
 
-Vite 默认会启动在 `http://localhost:5173`。前端开发代理已在 `frontend/vite.config.ts` 中配置，会把 `/api`、`/auth`、`/b2c` 转发到 `http://localhost:8080`。
+Vite 默认运行在 `http://localhost:5173`。前端开发代理已配置，会把 `/api`、`/auth`、`/b2c` 转发到 `http://localhost:8080`。
 
 ## 常用命令
 
@@ -113,16 +127,16 @@ cd backend
 mvn test
 ```
 
+前端类型检查：
+
+```sh
+cd frontend
+npm run type-check
+```
+
 前端构建：
 
 ```sh
 cd frontend
 npm run build
-```
-
-前端单元测试：
-
-```sh
-cd frontend
-npm run test:unit
 ```
