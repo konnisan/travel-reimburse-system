@@ -13,6 +13,7 @@ export interface QueryTravelReimbursePageListData {
 
 export interface TravelReimbursePageRow {
   id: string
+  version: number
   reimBillNo: string
   billStatus: string
   billStatusName: string
@@ -115,6 +116,7 @@ export interface CalculateCostShareResult {
 
 export interface TravelReimburseDetail {
   id: string
+  version?: number
   reimBillNo?: string
   billDate: string
   billStatus?: string
@@ -150,6 +152,7 @@ export interface PageResult<T> {
 
 export interface CreateTravelReimburseDraftResult {
   id: string
+  version: number
   reimBillNo: string
   billDate: string
   billStatus: string
@@ -159,6 +162,7 @@ export interface CreateTravelReimburseDraftResult {
 
 export interface InvalidTravelReimburseResult {
   id: string
+  version: number
   billStatus: string
   billStatusName: string
   message: string
@@ -174,6 +178,7 @@ export interface SubmitTravelReimburseResult {
   valid: boolean
   message: string
   id: string
+  version: number
   reimBillNo: string
   billStatus: string
   billStatusName: string
@@ -242,10 +247,10 @@ export function submitTravelReimburse(data: TravelReimburseDetail) {
   )
 }
 
-export function invalidTravelReimburse(id: string, invalidReason?: string) {
+export function invalidTravelReimburse(id: string, version?: number, invalidReason?: string) {
   return request.post<InvalidTravelReimburseResult>(
     `${basePath}/COMM_REIMBURSE_InvalidTravelReimburse`,
-    { data: { id, invalidReason } },
+    { data: { id, version, invalidReason } },
     { loading: true }
   )
 }

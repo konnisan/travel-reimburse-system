@@ -485,6 +485,7 @@ interface SubsidyRow {
 
 interface DetailForm {
   id: string
+  version: number
   reimBillNo: string
   billDate: string
   billStatus: string
@@ -516,6 +517,7 @@ const subsidyNotice = '1、请根据实际出差日期选择补助 2、出差期
 
 const detailForm = reactive<DetailForm>({
   id: '',
+  version: 0,
   reimBillNo: '',
   billDate: '',
   billStatus: '0',
@@ -1017,6 +1019,7 @@ const buildDetailPayload = (): TravelReimburseDetail => {
   const businessType = findBusinessType(detailForm.businessTypeId)
   return {
     id: detailForm.id,
+    version: detailForm.version,
     reimBillNo: detailForm.reimBillNo,
     billDate: detailForm.billDate,
     billStatus: detailForm.billStatus,
@@ -1046,6 +1049,7 @@ const buildDetailPayload = (): TravelReimburseDetail => {
 const applyDetailToForm = (detail: TravelReimburseDetail) => {
   Object.assign(detailForm, {
     id: detail.id,
+    version: detail.version ?? 0,
     reimBillNo: detail.reimBillNo ?? '',
     billDate: detail.billDate || today,
     billStatus: detail.billStatus ?? '0',
@@ -1115,6 +1119,7 @@ const applyDetailToForm = (detail: TravelReimburseDetail) => {
 const resetDetailForm = () => {
   Object.assign(detailForm, {
     id: '',
+    version: 0,
     reimBillNo: '',
     billDate: today,
     billStatus: '0',
@@ -1234,6 +1239,7 @@ const handleSubmit = async () => {
     const result = await submitTravelReimburse(detail)
     const submittedDetail: TravelReimburseDetail = {
       ...detail,
+      version: result.version ?? detail.version,
       reimBillNo: result.reimBillNo,
       billStatus: result.billStatus,
       billStatusName: result.billStatusName

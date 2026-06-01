@@ -360,7 +360,7 @@ const handleInvalid = async (row: TravelReimbursePageRow) => {
     cancelButtonText: '取消',
     inputType: 'textarea'
   })
-  await invalidTravelReimburse(row.id, value)
+  await invalidTravelReimburse(row.id, row.version, value)
   ElMessage.success('作废成功')
   handleSearch()
 }

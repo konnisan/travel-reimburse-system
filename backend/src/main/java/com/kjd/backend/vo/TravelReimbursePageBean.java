@@ -8,6 +8,7 @@ import java.util.Date;
 @Data
 public class TravelReimbursePageBean {
     private String id;
+    private Integer version;
     private String reimBillNo;
     private String billStatus;
     private String billStatusName;

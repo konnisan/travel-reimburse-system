@@ -7,6 +7,7 @@ import java.util.List;
 @Data
 public class TravelReimburseDetailSaveDTO {
     private String id;
+    private Integer version;
     private String billDate;
     private String title;
     private String reason;

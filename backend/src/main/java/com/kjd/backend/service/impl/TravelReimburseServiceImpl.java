@@ -148,10 +148,12 @@ public class TravelReimburseServiceImpl implements TravelReimburseService {
         main.setMealAllowance("0.00");
         main.setTransportationAllowance("0.00");
         main.setPhoneAllowance("0.00");
+        main.setVersion(0);
         mainMapper.insert(main);
 
         CreateTravelReimburseDraftVO vo = new CreateTravelReimburseDraftVO();
         vo.setId(id);
+        vo.setVersion(0);
         vo.setReimBillNo("");
         vo.setBillDate(billDate);
         vo.setBillStatus("0");
@@ -205,6 +207,7 @@ public class TravelReimburseServiceImpl implements TravelReimburseService {
         vo.setValid(true);
         vo.setMessage("submit success");
         vo.setId(saved.getId());
+        vo.setVersion(defaultVersion(saved.getVersion()));
         vo.setReimBillNo(saved.getReimBillNo());
         vo.setBillStatus(saved.getBillStatus());
         vo.setBillStatusName(statusName(saved.getBillStatus()));
@@ -215,15 +218,20 @@ public class TravelReimburseServiceImpl implements TravelReimburseService {
     @Transactional(rollbackFor = Exception.class)
     public InvalidTravelReimburseVO cancelTravelReimburse(InvalidTravelReimburseDTO dto) {
         String id = dto == null || dto.getData() == null ? null : dto.getData().getId();
+        Integer version = dto == null || dto.getData() == null ? null : dto.getData().getVersion();
         FkReimMain main = mustGetMain(id);
+        checkOptimisticVersion(version, main);
         if ("2".equals(main.getBillStatus())) {
             throw new IllegalArgumentException("bill already cancelled");
         }
         main.setBillStatus("2");
-        mainMapper.updateById(main);
+        int updated = mainMapper.updateById(main);
+        assertOptimisticUpdated(updated);
 
         InvalidTravelReimburseVO vo = new InvalidTravelReimburseVO();
-        vo.setId(main.getId());
+        FkReimMain saved = mustGetMain(main.getId());
+        vo.setId(saved.getId());
+        vo.setVersion(defaultVersion(saved.getVersion()));
         vo.setBillStatus("2");
         vo.setBillStatusName(statusName("2"));
         vo.setMessage("cancel success");
@@ -395,7 +403,9 @@ public class TravelReimburseServiceImpl implements TravelReimburseService {
         main.setMealAllowance(amount.meal.toPlainString());
         main.setTransportationAllowance(amount.traffic.toPlainString());
         main.setPhoneAllowance(amount.communication.toPlainString());
-        mainMapper.updateById(main);
+        checkOptimisticVersion(data.getVersion(), main);
+        int updated = mainMapper.updateById(main);
+        assertOptimisticUpdated(updated);
 
         deleteChildren(data.getId());
         saveTrips(data.getId(), data.getTripList());
@@ -519,6 +529,7 @@ public class TravelReimburseServiceImpl implements TravelReimburseService {
     private TravelReimburseDetailVO buildDetail(FkReimMain main) {
         TravelReimburseDetailVO vo = new TravelReimburseDetailVO();
         vo.setId(main.getId());
+        vo.setVersion(defaultVersion(main.getVersion()));
         vo.setReimBillNo(main.getReimBillNo());
         vo.setBillDate(defaultText(main.getBillDate(), datePart(main.getCreationTime())));
         vo.setBillStatus(main.getBillStatus());
@@ -557,6 +568,7 @@ public class TravelReimburseServiceImpl implements TravelReimburseService {
     private TravelReimbursePageBean toPageBean(FkReimMain entity) {
         TravelReimbursePageBean bean = new TravelReimbursePageBean();
         bean.setId(entity.getId());
+        bean.setVersion(defaultVersion(entity.getVersion()));
         bean.setReimBillNo(entity.getReimBillNo());
         bean.setBillStatus(entity.getBillStatus());
         bean.setBillStatusName(statusName(entity.getBillStatus()));
@@ -982,7 +994,25 @@ public class TravelReimburseServiceImpl implements TravelReimburseService {
         main.setMealAllowance("0.00");
         main.setTransportationAllowance("0.00");
         main.setPhoneAllowance("0.00");
+        main.setVersion(0);
         mainMapper.insert(main);
+        data.setVersion(0);
+    }
+
+    private void checkOptimisticVersion(Integer requestVersion, FkReimMain main) {
+        if (requestVersion == null) {
+            throw new IllegalArgumentException("version is required, please refresh the bill and retry");
+        }
+        if (!requestVersion.equals(defaultVersion(main.getVersion()))) {
+            throw new IllegalArgumentException("bill has been modified by another user, please refresh and retry");
+        }
+        main.setVersion(requestVersion);
+    }
+
+    private void assertOptimisticUpdated(int updated) {
+        if (updated <= 0) {
+            throw new IllegalArgumentException("bill has been modified by another user, please refresh and retry");
+        }
     }
 
     private CostShareDTO defaultShare(int lineNo, BigDecimal ratio, BigDecimal amount) {
@@ -1098,6 +1128,10 @@ public class TravelReimburseServiceImpl implements TravelReimburseService {
     }
 
     private int defaultInt(Integer value) {
+        return value == null ? 0 : value;
+    }
+
+    private Integer defaultVersion(Integer value) {
         return value == null ? 0 : value;
     }
 
