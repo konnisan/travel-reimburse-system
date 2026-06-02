@@ -1,4 +1,4 @@
-﻿/*
+/*
  Navicat Premium Dump SQL
 
  Source Server         : sky
@@ -11,7 +11,7 @@
  Target Server Version : 50744 (5.7.44-log)
  File Encoding         : 65001
 
- Date: 28/05/2026 15:57:29
+ Date: 02/06/2026 23:07:36
 */
 
 SET NAMES utf8mb4;
@@ -40,6 +40,7 @@ CREATE TABLE `fk_reim_apportion`  (
 -- ----------------------------
 -- Records of fk_reim_apportion
 -- ----------------------------
+INSERT INTO `fk_reim_apportion` VALUES ('a4268f2a9d0946b88b5a896fab8f9d59', '7925cdf1b2dd492bb364927fb60c2c6a', 'C001', 'COMP001', 'Demo Technology Co., Ltd.', 'P001', 'PROJ001', 'Travel Project', 1.0000, 0.00, 1);
 INSERT INTO `fk_reim_apportion` VALUES ('share_1779862819195_cogb1g', 'ac204bd355fc4ba8a0aabde625baebc0', '1C54557F1782E000', '0407', '胜意科技北京分公司', '12BC248B25083001', 'nonProjectRelated', '非项目类费用归集', 1.0000, 0.00, 1);
 
 -- ----------------------------
@@ -102,19 +103,20 @@ CREATE TABLE `fk_reim_main`  (
   `remarks` varchar(1000) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NULL DEFAULT NULL COMMENT '备注信息',
   `reim_bill_no` varchar(32) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NULL DEFAULT NULL COMMENT '报销单号',
   `bill_status` varchar(2) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NULL DEFAULT '0' COMMENT '单据状态：0草稿 1已完成 2已作废',
-  `version` int NOT NULL DEFAULT 0 COMMENT '乐观锁版本号',
+  `version` int(11) NOT NULL DEFAULT 0 COMMENT '乐观锁版本号',
   PRIMARY KEY (`id`) USING BTREE
 ) ENGINE = InnoDB CHARACTER SET = utf8mb4 COLLATE = utf8mb4_general_ci COMMENT = '报销单主表' ROW_FORMAT = Dynamic;
 
 -- ----------------------------
 -- Records of fk_reim_main
 -- ----------------------------
-INSERT INTO `fk_reim_main` VALUES ('21a2fb7397a04999b26397ec7592e405', '2026-05-27 13:13:05', '2026-05-27', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, '0.00', '0.00', '0.00', '0.00', NULL, NULL, '2', 0);
-INSERT INTO `fk_reim_main` VALUES ('36817d5ab1d54f5e8ece43b3b88c6212', '2026-05-27 13:14:27', '2026-05-27', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, '0.00', '0.00', '0.00', '0.00', NULL, NULL, '0', 0);
-INSERT INTO `fk_reim_main` VALUES ('ac204bd355fc4ba8a0aabde625baebc0', '2026-05-27 13:15:57', '2026-05-27', '团建', '13AB3A3F72409002', '74541', '徐年年', '13AB8D7B52A9B002', '072001', '客户成功事业部', '1C54557F1782E000', '0407', '胜意科技北京分公司', '18F0916A8C2C4000', '1001001', '员工差旅活动', '团建', '0.00', '0.00', '0.00', '0.00', '', 'CLBX202605286979', '1', 0);
-INSERT INTO `fk_reim_main` VALUES ('RM202605220001', '2026-05-22 09:30:00', '2026-05-22', '张三北京出差报销', 'U1001', '1001', '张三', 'D001', 'DEP001', '研发部', 'C001', 'COM001', '武汉科技有限公司', 'BT001', 'TRAVEL', '差旅报销', '项目需求调研', '450.00', '240.00', '150.00', '60.00', '北京客户现场调研', NULL, '0', 0);
-INSERT INTO `fk_reim_main` VALUES ('RM202605220002', '2026-05-22 10:15:00', '2026-05-22', '李四上海出差报销', 'U1002', '1002', '李四', 'D002', 'DEP002', '市场部', 'C001', 'COM001', '武汉科技有限公司', 'BT001', 'TRAVEL', '差旅报销', '参加行业会议', '360.00', '180.00', '120.00', '60.00', '上海行业展会', NULL, '0', 0);
-INSERT INTO `fk_reim_main` VALUES ('RM202605220003', '2026-05-22 11:00:00', '2026-05-22', '王五广州出差报销', 'U1003', '1003', '王五', 'D003', 'DEP003', '实施部', 'C002', 'COM002', '湖北信息技术有限公司', 'BT001', 'TRAVEL', '差旅报销', '系统上线支持', '520.00', '300.00', '160.00', '60.00', '广州项目上线', NULL, '0', 0);
+INSERT INTO `fk_reim_main` VALUES ('ac204bd355fc4ba8a0aabde625baebc0', '2026-05-27 13:15:57', '2026-05-27', '团建', '13AB3A3F72409002', '74541', '徐年年', '13AB8D7B52A9B002', '072001', '客户成功事业部', '1C54557F1782E000', '0407', '胜意科技北京分公司', '18F0916A8C2C4000', '1001001', '员工差旅活动', '团建', 0.00, 0.00, 0.00, 0.00, '', 'CLBX202605286979', '1', 0);
+INSERT INTO `fk_reim_main` VALUES ('c120d56791c243ca8bda6421e4eaa08f', '2026-05-30 12:08:23', '2026-05-30', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 0.00, 0.00, 0.00, 0.00, NULL, NULL, '0', 0);
+INSERT INTO `fk_reim_main` VALUES ('ca28a91d6de748458788645c149c6490', '2026-05-29 11:44:57', '2026-05-29', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 0.00, 0.00, 0.00, 0.00, NULL, NULL, '0', 0);
+INSERT INTO `fk_reim_main` VALUES ('e10073cdc95b45dea82f650523030ff1', '2026-05-30 12:08:31', '2026-05-30', NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, 0.00, 0.00, 0.00, 0.00, NULL, NULL, '0', 0);
+INSERT INTO `fk_reim_main` VALUES ('RM202605220001', '2026-05-22 09:30:00', '2026-05-22', '张三北京出差报销', 'U1001', '1001', '张三', 'D001', 'DEP001', '研发部', 'C001', 'COM001', '武汉科技有限公司', 'BT001', 'TRAVEL', '差旅报销', '项目需求调研', 450.00, 240.00, 150.00, 60.00, '北京客户现场调研', NULL, '0', 0);
+INSERT INTO `fk_reim_main` VALUES ('RM202605220002', '2026-05-22 10:15:00', '2026-05-22', '李四上海出差报销', 'U1002', '1002', '李四', 'D002', 'DEP002', '市场部', 'C001', 'COM001', '武汉科技有限公司', 'BT001', 'TRAVEL', '差旅报销', '参加行业会议', 360.00, 180.00, 120.00, 60.00, '上海行业展会', NULL, '0', 0);
+INSERT INTO `fk_reim_main` VALUES ('RM202605220003', '2026-05-22 11:00:00', '2026-05-22', '王五广州出差报销', 'U1003', '1003', '王五', 'D003', 'DEP003', '实施部', 'C002', 'COM002', '湖北信息技术有限公司', 'BT001', 'TRAVEL', '差旅报销', '系统上线支持', 520.00, 300.00, 160.00, 60.00, '广州项目上线', NULL, '0', 0);
 
 -- ----------------------------
 -- Table structure for fk_reim_subsidy
@@ -128,7 +130,7 @@ CREATE TABLE `fk_reim_subsidy`  (
   `traveler_name` varchar(20) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NULL DEFAULT NULL COMMENT '出行人',
   `departure_date` date NULL DEFAULT NULL COMMENT '出发日期',
   `arrival_date` date NULL DEFAULT NULL COMMENT '到达日期',
-  `subsidy_days` int NULL DEFAULT 0 COMMENT '补助天数',
+  `subsidy_days` int(11) NULL DEFAULT 0 COMMENT '补助天数',
   `departure_city` varchar(100) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NULL DEFAULT NULL COMMENT '出发城市',
   `departure_city_no` varchar(20) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NULL DEFAULT NULL COMMENT '出发城市编号',
   `arriving_city` varchar(100) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NULL DEFAULT NULL COMMENT '到达城市',
@@ -148,10 +150,10 @@ CREATE TABLE `fk_reim_subsidy`  (
 -- ----------------------------
 -- Records of fk_reim_subsidy
 -- ----------------------------
-INSERT INTO `fk_reim_subsidy` VALUES ('SUB202605220001', 'RM202605220001', 'U1001', '1001', '张三', '2026-05-10', '2026-05-12', '3', '武汉', 'WH', '北京', 'BJ', '450.00', '450.00', '240.00', '150.00', '60.00', 'BT001', 'TRAVEL', '差旅报销');
-INSERT INTO `fk_reim_subsidy` VALUES ('SUB202605220002', 'RM202605220002', 'U1002', '1002', '李四', '2026-05-15', '2026-05-16', '2', '武汉', 'WH', '上海', 'SH', '360.00', '360.00', '180.00', '120.00', '60.00', 'BT001', 'TRAVEL', '差旅报销');
-INSERT INTO `fk_reim_subsidy` VALUES ('SUB202605220003', 'RM202605220003', 'U1003', '1003', '王五', '2026-05-18', '2026-05-21', '4', '武汉', 'WH', '广州', 'GZ', '520.00', '520.00', '300.00', '160.00', '60.00', 'BT001', 'TRAVEL', '差旅报销');
-INSERT INTO `fk_reim_subsidy` VALUES ('subsidy_1779953966944_cikerl', 'ac204bd355fc4ba8a0aabde625baebc0', '13AB3A3F72409002', '74541', '徐年年', '2026-05-05', '2026-05-27', '5', NULL, NULL, '北京', '10119', '0.00', '0.00', '0.00', '0.00', '0.00', '18F0916A8C2C4000', '1001001', '员工差旅活动');
+INSERT INTO `fk_reim_subsidy` VALUES ('SUB202605220001', 'RM202605220001', 'U1001', '1001', '张三', '2026-05-10', '2026-05-12', 3, '武汉', 'WH', '北京', 'BJ', 450.00, 450.00, 240.00, 150.00, 60.00, 'BT001', 'TRAVEL', '差旅报销');
+INSERT INTO `fk_reim_subsidy` VALUES ('SUB202605220002', 'RM202605220002', 'U1002', '1002', '李四', '2026-05-15', '2026-05-16', 2, '武汉', 'WH', '上海', 'SH', 360.00, 360.00, 180.00, 120.00, 60.00, 'BT001', 'TRAVEL', '差旅报销');
+INSERT INTO `fk_reim_subsidy` VALUES ('SUB202605220003', 'RM202605220003', 'U1003', '1003', '王五', '2026-05-18', '2026-05-21', 4, '武汉', 'WH', '广州', 'GZ', 520.00, 520.00, 300.00, 160.00, 60.00, 'BT001', 'TRAVEL', '差旅报销');
+INSERT INTO `fk_reim_subsidy` VALUES ('subsidy_1779953966944_cikerl', 'ac204bd355fc4ba8a0aabde625baebc0', '13AB3A3F72409002', '74541', '徐年年', '2026-05-05', '2026-05-27', 5, NULL, NULL, '北京', '10119', 0.00, 0.00, 0.00, 0.00, 0.00, '18F0916A8C2C4000', '1001001', '员工差旅活动');
 
 -- ----------------------------
 -- Table structure for fk_subsidy_calendar
@@ -179,19 +181,19 @@ CREATE TABLE `fk_subsidy_calendar`  (
 -- ----------------------------
 -- Records of fk_subsidy_calendar
 -- ----------------------------
-INSERT INTO `fk_subsidy_calendar` VALUES ('CAL202605220001', 'SUB202605220001', '2026-05-10', '星期日', '北京', 'BJ', '到达北京', '80.00', '50.00', '20.00', '80.00', '50.00', '20.00', '1');
-INSERT INTO `fk_subsidy_calendar` VALUES ('CAL202605220002', 'SUB202605220001', '2026-05-11', '星期一', '北京', 'BJ', '北京出差', '80.00', '50.00', '20.00', '80.00', '50.00', '20.00', '1');
-INSERT INTO `fk_subsidy_calendar` VALUES ('CAL202605220003', 'SUB202605220001', '2026-05-12', '星期二', '北京', 'BJ', '返回武汉', '80.00', '50.00', '20.00', '80.00', '50.00', '20.00', '1');
-INSERT INTO `fk_subsidy_calendar` VALUES ('CAL202605220004', 'SUB202605220002', '2026-05-15', '星期五', '上海', 'SH', '到达上海', '90.00', '60.00', '30.00', '90.00', '60.00', '30.00', '1');
-INSERT INTO `fk_subsidy_calendar` VALUES ('CAL202605220005', 'SUB202605220002', '2026-05-16', '星期六', '上海', 'SH', '会议结束返回', '90.00', '60.00', '30.00', '90.00', '60.00', '30.00', '1');
-INSERT INTO `fk_subsidy_calendar` VALUES ('CAL202605220006', 'SUB202605220003', '2026-05-18', '星期一', '广州', 'GZ', '到达广州', '75.00', '40.00', '15.00', '75.00', '40.00', '15.00', '1');
-INSERT INTO `fk_subsidy_calendar` VALUES ('CAL202605220007', 'SUB202605220003', '2026-05-19', '星期二', '广州', 'GZ', '系统部署', '75.00', '40.00', '15.00', '75.00', '40.00', '15.00', '1');
-INSERT INTO `fk_subsidy_calendar` VALUES ('CAL202605220008', 'SUB202605220003', '2026-05-20', '星期三', '广州', 'GZ', '上线支持', '75.00', '40.00', '15.00', '75.00', '40.00', '15.00', '1');
-INSERT INTO `fk_subsidy_calendar` VALUES ('CAL202605220009', 'SUB202605220003', '2026-05-21', '星期四', '广州', 'GZ', '返回武汉', '75.00', '40.00', '15.00', '75.00', '40.00', '15.00', '1');
-INSERT INTO `fk_subsidy_calendar` VALUES ('calendar_1779862805861_pbtioq', 'subsidy_1779953966944_cikerl', '2026-05-27', NULL, '北京', '10119', NULL, '300.00', '0.00', '0.00', '0.00', '0.00', '0.00', '1');
-INSERT INTO `fk_subsidy_calendar` VALUES ('calendar_1779862819195_9m1qcb', 'subsidy_1779953966944_cikerl', '2026-05-06', NULL, '上海', '10621', NULL, '300.00', '0.00', '0.00', '0.00', '0.00', '0.00', '1');
-INSERT INTO `fk_subsidy_calendar` VALUES ('calendar_1779862819195_bpp1dp', 'subsidy_1779953966944_cikerl', '2026-05-05', NULL, '上海', '10621', NULL, '300.00', '0.00', '0.00', '0.00', '0.00', '0.00', '1');
-INSERT INTO `fk_subsidy_calendar` VALUES ('calendar_1779862855937_ctddey', 'subsidy_1779953966944_cikerl', '2026-05-06', NULL, '上海', '10621', NULL, '300.00', '0.00', '0.00', '0.00', '0.00', '0.00', '1');
-INSERT INTO `fk_subsidy_calendar` VALUES ('calendar_1779862855937_oh0xq8', 'subsidy_1779953966944_cikerl', '2026-05-05', NULL, '上海', '10621', NULL, '300.00', '0.00', '0.00', '0.00', '0.00', '0.00', '1');
+INSERT INTO `fk_subsidy_calendar` VALUES ('CAL202605220001', 'SUB202605220001', '2026-05-10', '星期日', '北京', 'BJ', '到达北京', 80.00, 50.00, 20.00, 80.00, 50.00, 20.00, '1');
+INSERT INTO `fk_subsidy_calendar` VALUES ('CAL202605220002', 'SUB202605220001', '2026-05-11', '星期一', '北京', 'BJ', '北京出差', 80.00, 50.00, 20.00, 80.00, 50.00, 20.00, '1');
+INSERT INTO `fk_subsidy_calendar` VALUES ('CAL202605220003', 'SUB202605220001', '2026-05-12', '星期二', '北京', 'BJ', '返回武汉', 80.00, 50.00, 20.00, 80.00, 50.00, 20.00, '1');
+INSERT INTO `fk_subsidy_calendar` VALUES ('CAL202605220004', 'SUB202605220002', '2026-05-15', '星期五', '上海', 'SH', '到达上海', 90.00, 60.00, 30.00, 90.00, 60.00, 30.00, '1');
+INSERT INTO `fk_subsidy_calendar` VALUES ('CAL202605220005', 'SUB202605220002', '2026-05-16', '星期六', '上海', 'SH', '会议结束返回', 90.00, 60.00, 30.00, 90.00, 60.00, 30.00, '1');
+INSERT INTO `fk_subsidy_calendar` VALUES ('CAL202605220006', 'SUB202605220003', '2026-05-18', '星期一', '广州', 'GZ', '到达广州', 75.00, 40.00, 15.00, 75.00, 40.00, 15.00, '1');
+INSERT INTO `fk_subsidy_calendar` VALUES ('CAL202605220007', 'SUB202605220003', '2026-05-19', '星期二', '广州', 'GZ', '系统部署', 75.00, 40.00, 15.00, 75.00, 40.00, 15.00, '1');
+INSERT INTO `fk_subsidy_calendar` VALUES ('CAL202605220008', 'SUB202605220003', '2026-05-20', '星期三', '广州', 'GZ', '上线支持', 75.00, 40.00, 15.00, 75.00, 40.00, 15.00, '1');
+INSERT INTO `fk_subsidy_calendar` VALUES ('CAL202605220009', 'SUB202605220003', '2026-05-21', '星期四', '广州', 'GZ', '返回武汉', 75.00, 40.00, 15.00, 75.00, 40.00, 15.00, '1');
+INSERT INTO `fk_subsidy_calendar` VALUES ('calendar_1779862805861_pbtioq', 'subsidy_1779953966944_cikerl', '2026-05-27', NULL, '北京', '10119', NULL, 300.00, 0.00, 0.00, 0.00, 0.00, 0.00, '1');
+INSERT INTO `fk_subsidy_calendar` VALUES ('calendar_1779862819195_9m1qcb', 'subsidy_1779953966944_cikerl', '2026-05-06', NULL, '上海', '10621', NULL, 300.00, 0.00, 0.00, 0.00, 0.00, 0.00, '1');
+INSERT INTO `fk_subsidy_calendar` VALUES ('calendar_1779862819195_bpp1dp', 'subsidy_1779953966944_cikerl', '2026-05-05', NULL, '上海', '10621', NULL, 300.00, 0.00, 0.00, 0.00, 0.00, 0.00, '1');
+INSERT INTO `fk_subsidy_calendar` VALUES ('calendar_1779862855937_ctddey', 'subsidy_1779953966944_cikerl', '2026-05-06', NULL, '上海', '10621', NULL, 300.00, 0.00, 0.00, 0.00, 0.00, 0.00, '1');
+INSERT INTO `fk_subsidy_calendar` VALUES ('calendar_1779862855937_oh0xq8', 'subsidy_1779953966944_cikerl', '2026-05-05', NULL, '上海', '10621', NULL, 300.00, 0.00, 0.00, 0.00, 0.00, 0.00, '1');
 
 SET FOREIGN_KEY_CHECKS = 1;

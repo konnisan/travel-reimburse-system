@@ -29,14 +29,6 @@ CREATE DATABASE IF NOT EXISTS fk DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_g
 mysql -u root -p fk < fk.sql
 ```
 
-如果使用的是已经存在的旧数据库，需要补充字段：
-
-```sh
-mysql -u root -p fk < doc/migration-add-bill-date.sql
-mysql -u root -p fk < doc/migration-add-optimistic-version.sql
-mysql -u root -p fk < doc/migration-normalize-column-types.sql
-```
-
 也可以在数据库管理工具里手动执行：
 
 ```sql
