@@ -428,6 +428,7 @@ interface TreeOption {
   value: string
   label: string
   no?: string
+  disabled?: boolean
   children?: TreeOption[]
 }
 
@@ -548,12 +549,24 @@ const tripForm = reactive({
   remark: ''
 })
 
+const validateBusinessTypeLeaf = (_rule: unknown, value: string, callback: (error?: Error) => void) => {
+  if (!value) {
+    callback(new Error('请选择业务类型'))
+    return
+  }
+  if (!isLeafBusinessType(value)) {
+    callback(new Error('只能选择最底级业务类型'))
+    return
+  }
+  callback()
+}
+
 const detailRules: FormRules<DetailForm> = {
   billDate: [{ required: true, message: '请选择单据日期', trigger: 'change' }],
   reimburserId: [{ required: true, message: '请选择报销人', trigger: 'change' }],
   reimDepartmentId: [{ required: true, message: '请选择报销部门', trigger: 'change' }],
   reimCompanyId: [{ required: true, message: '请选择费用归属公司', trigger: 'change' }],
-  businessTypeId: [{ required: true, message: '请选择业务类型', trigger: 'change' }],
+  businessTypeId: [{ required: true, validator: validateBusinessTypeLeaf, trigger: 'change' }],
   title: [{ required: true, message: '请输入报销标题', trigger: 'blur' }],
   reason: [{ required: true, message: '请输入出差事由', trigger: 'blur' }]
 }
@@ -604,7 +617,18 @@ const cityOptions: CityOption[] = [
   { no: '10455', name: '荆州', type: '3' }
 ]
 
-const businessTypeOptions: TreeOption[] = [
+function disableNonLeafOptions(options: TreeOption[]): TreeOption[] {
+  return options.map((item) => {
+    const children = item.children ? disableNonLeafOptions(item.children) : undefined
+    return {
+      ...item,
+      children,
+      disabled: Boolean(children?.length)
+    }
+  })
+}
+
+const businessTypeOptions: TreeOption[] = disableNonLeafOptions([
   {
     value: '18F0916A8C2C4000',
     no: '1001001',
@@ -649,7 +673,7 @@ const businessTypeOptions: TreeOption[] = [
       { value: '13AB3A422A808001', no: '100100303', label: '员工体检' }
     ]
   }
-]
+])
 
 const tripList = ref<TripRow[]>([])
 const subsidyList = ref<SubsidyRow[]>([])
@@ -673,6 +697,10 @@ const findOption = (options: OptionItem[], id: string) => options.find((item) =>
 const findCity = (no: string) => cityOptions.find((item) => item.no === no)
 const flattenBusinessTypes = (options: TreeOption[]): TreeOption[] => options.flatMap((item) => [item, ...flattenBusinessTypes(item.children ?? [])])
 const findBusinessType = (id: string) => businessTypeFlatOptions.value.find((item) => item.value === id)
+const isLeafBusinessType = (id: string) => {
+  const option = findBusinessType(id)
+  return Boolean(option && !option.children?.length)
+}
 const sum = (values: number[]) => Number(values.reduce((total, value) => total + Number(value || 0), 0).toFixed(2))
 const formatMoney = (value: number) => Number(value || 0).toFixed(2)
 

@@ -23,7 +23,7 @@
 CREATE DATABASE IF NOT EXISTS fk DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci;
 ```
 
-新环境直接导入完整初始化脚本即可，`fk.sql` 已包含 `bill_date` 和乐观锁字段 `version`：
+新环境直接导入完整初始化脚本即可，`fk.sql` 已包含 `bill_date`、乐观锁字段 `version`，并已将金额字段规范为 `DECIMAL`、日期字段规范为 `DATE/DATETIME`：
 
 ```sh
 mysql -u root -p fk < fk.sql
@@ -34,6 +34,7 @@ mysql -u root -p fk < fk.sql
 ```sh
 mysql -u root -p fk < doc/migration-add-bill-date.sql
 mysql -u root -p fk < doc/migration-add-optimistic-version.sql
+mysql -u root -p fk < doc/migration-normalize-column-types.sql
 ```
 
 也可以在数据库管理工具里手动执行：
@@ -51,6 +52,8 @@ WHERE bill_date IS NULL
 ALTER TABLE fk_reim_main
   ADD COLUMN version INT NOT NULL DEFAULT 0 COMMENT '乐观锁版本号';
 ```
+
+字段类型规范化脚本会将金额字段调整为 `DECIMAL(18,2)`，将单据日期、行程日期、补助日历日期调整为日期类型，并将标题、事由、备注等字段长度调整到页面规则要求的范围。
 
 ## Redis 准备
 

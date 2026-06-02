@@ -194,6 +194,7 @@ interface TreeOption {
   value: string
   label: string
   no?: string
+  disabled?: boolean
   children?: TreeOption[]
 }
 
@@ -249,7 +250,18 @@ const employeeOptions: OptionItem[] = [
   { id: '13AB7925EB808001', no: '10503', name: '姜林' }
 ]
 
-const businessTypeOptions: TreeOption[] = [
+function disableNonLeafOptions(options: TreeOption[]): TreeOption[] {
+  return options.map((item) => {
+    const children = item.children ? disableNonLeafOptions(item.children) : undefined
+    return {
+      ...item,
+      children,
+      disabled: Boolean(children?.length)
+    }
+  })
+}
+
+const businessTypeOptions: TreeOption[] = disableNonLeafOptions([
   {
     value: '18F0916A8C2C4000',
     no: '1001001',
@@ -294,7 +306,7 @@ const businessTypeOptions: TreeOption[] = [
       { value: '13AB3A422A808001', no: '100100303', label: '员工体检' }
     ]
   }
-]
+])
 
 const userInitial = computed(() => auth.user?.displayName?.slice(0, 1) || auth.user?.username?.slice(0, 1) || 'U')
 
