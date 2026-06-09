@@ -1447,8 +1447,15 @@ const clearDraftCache = (id = detailForm.id) => {
 const restoreDraftCache = (id: string) => {
   const cached = localStorage.getItem(draftCacheKey(id))
   if (!cached) return false
+
   try {
     const detail = JSON.parse(cached) as TravelReimburseDetail
+
+    if (!isDraftBillStatus(detail.billStatus)) {
+      localStorage.removeItem(draftCacheKey(id))
+      return false
+    }
+
     applyDetailToForm(detail)
     hasUnsavedNewDraft.value = true
     ElMessage.info('已恢复未保存的本地草稿')
@@ -1570,7 +1577,11 @@ const openDraftDetail = (id: string, redirectUrl: string) => {
 
 const isDraftBillStatus = (status?: string) => String(status ?? '0') === '0'
 const shouldCacheEditableDraft = () => detailMode.value !== 'view' && isDraftBillStatus(detailForm.billStatus)
-const shouldConfirmUnsavedDraft = () => detailMode.value === 'create' && hasUnsavedNewDraft.value
+const shouldConfirmUnsavedDraft = () => {
+  return detailMode.value === 'create'
+      && hasUnsavedNewDraft.value
+      && isDraftBillStatus(detailForm.billStatus)
+}
 
 const handleBeforeUnload = (event: BeforeUnloadEvent) => {
   if (!shouldCacheEditableDraft()) return
@@ -1620,30 +1631,41 @@ const handleCloseDetail = async () => {
 const openRouteDetail = () => {
   const id = String(route.params.id || '')
   if (!id) return
-  if (route.query.mode === 'create' || id.startsWith('draft_')) {
+
+  if (route.query.mode === 'create') {
     openDraftDetail(id, `reimburse/detail/${id}`)
     return
   }
+
   draftCacheEnabled.value = false
-  detailMode.value = route.query.mode === 'edit' ? 'edit' : 'view'
   hasUnsavedNewDraft.value = false
   resetDetailForm()
   detailForm.id = id
+
+  detailMode.value = route.query.mode === 'edit' ? 'edit' : 'view'
+
   queryTravelReimburseDetail(id)
-    .then((detail) => {
-      applyDetailToForm(detail)
-      if (detailMode.value === 'edit' && isDraftBillStatus(detail.billStatus)) {
-        restoreDraftCache(id)
-      }
-      if (detailMode.value === 'edit' && isDraftBillStatus(detail.billStatus)) {
-        restoreDraftCache(id)
-      }
-      draftCacheEnabled.value = shouldCacheEditableDraft()
-    })
-    .catch(() => {
-      draftCacheEnabled.value = false
-      ElMessage.error('详情加载失败')
-    })
+      .then((detail) => {
+        applyDetailToForm(detail)
+
+        if (!isDraftBillStatus(detail.billStatus)) {
+          detailMode.value = 'view'
+          hasUnsavedNewDraft.value = false
+          draftCacheEnabled.value = false
+          clearDraftCache(id)
+          return
+        }
+
+        if (detailMode.value === 'edit') {
+          restoreDraftCache(id)
+        }
+
+        draftCacheEnabled.value = shouldCacheEditableDraft()
+      })
+      .catch(() => {
+        draftCacheEnabled.value = false
+        ElMessage.error('详情加载失败')
+      })
 }
 
 const validateBeforeSubmit = async () => {
@@ -1668,8 +1690,10 @@ const handleSaveDraft = async () => {
     const result = await saveTravelReimburseDraft(detail)
     const savedDetail = result.detail ?? detail
     applyDetailToForm(savedDetail)
-    hasUnsavedNewDraft.value = false
     clearDraftCache(detail.id)
+    clearDraftCache(detailForm.id)
+    hasUnsavedNewDraft.value = false
+    draftCacheEnabled.value = false
     detailMode.value = 'edit'
     if (savedDetail.id && savedDetail.id !== detail.id) {
       await router.replace({ path: `/reimburse/detail/${savedDetail.id}`, query: { mode: 'edit' } })
