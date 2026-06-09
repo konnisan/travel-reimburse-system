@@ -378,8 +378,19 @@ const userInitial = computed(() => auth.user?.displayName?.slice(0, 1) || auth.u
 
 const can = (permission: string) => auth.hasPermission(permission)
 const isAdmin = () => auth.hasRole('ADMIN')
-const canEditRow = (row: TravelReimbursePageRow) => { return can('reimburse:edit') && row.billStatus === '0' }
-const getEditTooltip = (row: TravelReimbursePageRow) => (row.billStatus === '0' ? '编辑' : '编辑并生成新草稿')
+const canEditRow = (row: TravelReimbursePageRow) => {
+  return can('reimburse:edit')
+      && (
+          row.billStatus === '0'
+          || (isAdmin() && row.billStatus === '3')
+      )
+}
+
+const getEditTooltip = (row: TravelReimbursePageRow) => {
+  if (row.billStatus === '0') return '编辑'
+  if (isAdmin() && row.billStatus === '3') return '编辑并生成新草稿'
+  return '不可编辑'
+}
 
 const normalizeQueryData = () => {
   return Object.fromEntries(

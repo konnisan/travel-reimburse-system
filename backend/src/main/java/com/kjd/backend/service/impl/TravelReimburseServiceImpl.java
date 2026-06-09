@@ -179,8 +179,8 @@ public class TravelReimburseServiceImpl implements TravelReimburseService {
         }
         FkReimMain existing = mainMapper.selectById(data.getId());
         if (existing != null && !"0".equals(existing.getBillStatus())) {
-            if (!"1".equals(existing.getBillStatus()) && !"3".equals(existing.getBillStatus())) {
-                throw new IllegalArgumentException("only draft or submitted bill can be saved");
+            if (!"3".equals(existing.getBillStatus())) {
+                throw new IllegalArgumentException("only draft, submitted or completed bill can be saved");
             }
             if (!hasRole("ADMIN")) {
                 throw new IllegalArgumentException("submitted or completed bill can only be revised by admin");
@@ -537,11 +537,16 @@ public class TravelReimburseServiceImpl implements TravelReimburseService {
     private void saveShares(String mainId, List<CostShareDTO> shares, BigDecimal total) {
         List<CostShareDTO> data = shares == null || shares.isEmpty() ? new ArrayList<>() : new ArrayList<>(shares);
         normalizeShareRatios(data);
+
         if (data.isEmpty()) {
             data.add(defaultShare(1, BigDecimal.ONE, total));
         }
-        recalculateShare(data, total, false);
-        for (CostShareDTO dto : data) {
+
+        validateShare(data, total);
+
+        for (int i = 0; i < data.size(); i++) {
+            CostShareDTO dto = data.get(i);
+
             FkReimApportion entity = new FkReimApportion();
             entity.setId(defaultText(dto.getShareId(), uuid()));
             entity.setMainId(mainId);
@@ -553,7 +558,7 @@ public class TravelReimburseServiceImpl implements TravelReimburseService {
             entity.setProjectName(dto.getProjectName());
             entity.setApportionRatio(money4(dto.getShareRatio()).toPlainString());
             entity.setApportionAmount(money(dto.getShareAmount()).toPlainString());
-            entity.setRowNo(dto.getLineNo());
+            entity.setRowNo(i + 1);
             apportionMapper.insert(entity);
         }
     }

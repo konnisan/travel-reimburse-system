@@ -820,10 +820,22 @@ const tripList = ref<TripRow[]>([])
 const subsidyList = ref<SubsidyRow[]>([])
 const shareList = ref<ShareRow[]>([])
 
+const isAdmin = () => auth.hasRole('ADMIN')
+
 const isDraftStatus = computed(() => detailForm.billStatus === '0')
+const isCompletedStatus = computed(() => detailForm.billStatus === '3')
+
+const canEditCurrentDetail = computed(() => {
+  return detailMode.value !== 'view'
+      && can('reimburse:edit')
+      && (
+          isDraftStatus.value
+          || (isAdmin() && isCompletedStatus.value)
+      )
+})
 
 const isReadonly = computed(() => {
-  return detailMode.value === 'view' || !isDraftStatus.value
+  return !canEditCurrentDetail.value
 })
 const tripDialogTitle = computed(() => (tripDialogMode.value === 'edit' ? '编辑补录行程' : tripDialogMode.value === 'copy' ? '复制补录行程' : '补录行程'))
 const businessTypeFlatOptions = computed(() => flattenBusinessTypes(businessTypeOptions))
@@ -854,7 +866,9 @@ const formatMoney = (value: number) => Number(value || 0).toFixed(2)
 const formatPercent = (value: number) => `${Number(value || 0).toFixed(2)}%`
 const round2 = (value: number) => Number(Number(value || 0).toFixed(2))
 const floor2 = (value: number) => Math.floor(Number(value || 0) * 100) / 100
+const toCent = (value: number) => Math.round(Number(value || 0) * 100)
 
+const fromCent = (cent: number) => Number((cent / 100).toFixed(2))
 const makeDefaultShare = (ratio = 100): ShareRow => {
   const company = findOption(companyOptions, detailForm.reimCompanyId) ?? companyOptions[0]
   const project = projectOptions[0]
@@ -876,7 +890,6 @@ const ensureShareRows = () => {
   if (!shareList.value.length) {
     shareList.value = [makeDefaultShare()]
   }
-  recalculateShareRows()
 }
 
 const recalculateShareRows = () => {
@@ -939,14 +952,17 @@ const canApproveDetail = computed(() => {
 
 const canSaveDraftDetail = computed(() => {
   return detailMode.value !== 'view'
-      && detailForm.billStatus === '0'
       && can('reimburse:save')
+      && (
+          detailForm.billStatus === '0'
+          || (isAdmin() && detailForm.billStatus === '3')
+      )
 })
 
 const canSubmitDetail = computed(() => {
   return detailMode.value !== 'view'
-      && detailForm.billStatus === '0'
       && can('reimburse:submit')
+      && detailForm.billStatus === '0'
 })
 
 const handleShareRatioChange = (row: ShareRow) => {
@@ -975,27 +991,33 @@ const handleAddShare = () => {
 
 const handleAverageShare = () => {
   ensureShareRows()
+
   const unlockedRows = shareList.value.filter((row) => !row.locked)
   if (!unlockedRows.length) {
     ElMessage.warning('当前没有可均摊的未锁定行')
     return
   }
-  const total = expenseSummary.value.subsidyAmount
-  shareList.value
-    .filter((row) => row.locked)
-    .forEach((row) => {
-      row.shareAmount = Math.min(getShareAmountMax(row), Math.max(0, round2(row.shareAmount)))
-    })
-  const lockedAmount = shareList.value
-    .filter((row) => row.locked)
-    .reduce((value, row) => value + Number(row.shareAmount || 0), 0)
-  const amountLeft = Math.max(0, round2(total - lockedAmount))
-  const baseAmount = floor2(amountLeft / unlockedRows.length)
-  let usedAmount = 0
+
+  const totalCent = toCent(expenseSummary.value.subsidyAmount)
+
+  const lockedCent = shareList.value
+      .filter((row) => row.locked)
+      .reduce((value, row) => value + toCent(row.shareAmount), 0)
+
+  const amountLeftCent = Math.max(0, totalCent - lockedCent)
+  const baseCent = Math.floor(amountLeftCent / unlockedRows.length)
+
+  let usedCent = 0
+
   unlockedRows.forEach((row, index) => {
-    row.shareAmount = index === unlockedRows.length - 1 ? round2(amountLeft - usedAmount) : baseAmount
-    usedAmount = round2(usedAmount + row.shareAmount)
+    const cent = index === unlockedRows.length - 1
+        ? amountLeftCent - usedCent
+        : baseCent
+
+    row.shareAmount = fromCent(cent)
+    usedCent += cent
   })
+
   syncShareRatiosFromAmounts(unlockedRows[unlockedRows.length - 1])
 }
 
@@ -1058,15 +1080,24 @@ const toApiShare = (row: ShareRow, index: number): CostShare => ({
 
 const validateShareRows = () => {
   ensureShareRows()
-  if (shareTotalAmount.value !== expenseSummary.value.subsidyAmount) {
+
+  const shareTotalCent = shareList.value.reduce((value, row) => {
+    return value + toCent(row.shareAmount)
+  }, 0)
+
+  const totalCent = toCent(expenseSummary.value.subsidyAmount)
+
+  if (shareTotalCent !== totalCent) {
     ElMessage.warning('费用分摊金额合计必须等于补助总金额')
     return false
   }
+
   const invalidRow = shareList.value.find((row) => !row.reimCompanyId || !row.projectId)
   if (invalidRow) {
     ElMessage.warning('请完善费用分摊公司和项目')
     return false
   }
+
   return true
 }
 
@@ -1648,7 +1679,12 @@ const openRouteDetail = () => {
       .then((detail) => {
         applyDetailToForm(detail)
 
-        if (!isDraftBillStatus(detail.billStatus)) {
+        const canEditCompletedBill = detailMode.value === 'edit'
+            && detail.billStatus === '3'
+            && isAdmin()
+            && can('reimburse:edit')
+
+        if (!isDraftBillStatus(detail.billStatus) && !canEditCompletedBill) {
           detailMode.value = 'view'
           hasUnsavedNewDraft.value = false
           draftCacheEnabled.value = false
@@ -1656,15 +1692,11 @@ const openRouteDetail = () => {
           return
         }
 
-        if (detailMode.value === 'edit') {
+        if (detailMode.value === 'edit' && isDraftBillStatus(detail.billStatus)) {
           restoreDraftCache(id)
         }
 
         draftCacheEnabled.value = shouldCacheEditableDraft()
-      })
-      .catch(() => {
-        draftCacheEnabled.value = false
-        ElMessage.error('详情加载失败')
       })
 }
 
