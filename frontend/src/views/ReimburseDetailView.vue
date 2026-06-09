@@ -257,24 +257,32 @@
       </div>
       <div class="page-footer">
         <el-button @click="handleCloseDetail">关闭</el-button>
-        <el-button v-if="detailMode !== 'view' && can('reimburse:save')" :loading="saving" @click="handleSaveDraft">保存草稿</el-button>
+
         <el-button
-          v-if="detailMode !== 'view' && can('reimburse:submit')"
-          type="primary"
-          :loading="saving"
-          @click="handleSubmit"
+            v-if="canSaveDraftDetail"
+            :loading="saving"
+            @click="handleSaveDraft"
+        >
+          保存草稿
+        </el-button>
+
+        <el-button
+            v-if="canSubmitDetail"
+            type="primary"
+            :loading="saving"
+            @click="handleSubmit"
         >
           提交
         </el-button>
 
-<!--        <el-button-->
-<!--            v-if="detailMode !== 'view'  && detailForm.billStatus === '1'&& can('reimburse:audit')"-->
-<!--            type="success"-->
-<!--            :loading="saving"-->
-<!--            @click="handleApprove"-->
-<!--        >-->
-<!--          审核通过-->
-<!--        </el-button>-->
+        <el-button
+            v-if="canApproveDetail"
+            type="success"
+            :loading="saving"
+            @click="handleApprove"
+        >
+          审核通过
+        </el-button>
 
       </div>
     </section>
@@ -503,6 +511,7 @@ import {
   Plus
 } from '@element-plus/icons-vue'
 import {
+  approveTravelReimburse,
   queryTravelReimburseBaseData,
   queryTravelReimburseDetail,
   saveTravelReimburseDraft,
@@ -811,7 +820,11 @@ const tripList = ref<TripRow[]>([])
 const subsidyList = ref<SubsidyRow[]>([])
 const shareList = ref<ShareRow[]>([])
 
-const isReadonly = computed(() => detailMode.value === 'view')
+const isDraftStatus = computed(() => detailForm.billStatus === '0')
+
+const isReadonly = computed(() => {
+  return detailMode.value === 'view' || !isDraftStatus.value
+})
 const tripDialogTitle = computed(() => (tripDialogMode.value === 'edit' ? '编辑补录行程' : tripDialogMode.value === 'copy' ? '复制补录行程' : '补录行程'))
 const businessTypeFlatOptions = computed(() => flattenBusinessTypes(businessTypeOptions))
 const businessTypeName = computed(() => findBusinessType(detailForm.businessTypeId)?.label ?? '')
@@ -917,6 +930,24 @@ const syncShareRatiosFromAmounts = (adjustRow?: ShareRow) => {
     tailRow.shareRatio = Math.max(0, round2(100 - usedRatio))
   }
 }
+
+const canApproveDetail = computed(() => {
+  return detailMode.value === 'view'
+      && detailForm.billStatus === '1'
+      && can('reimburse:approve')
+})
+
+const canSaveDraftDetail = computed(() => {
+  return detailMode.value !== 'view'
+      && detailForm.billStatus === '0'
+      && can('reimburse:save')
+})
+
+const canSubmitDetail = computed(() => {
+  return detailMode.value !== 'view'
+      && detailForm.billStatus === '0'
+      && can('reimburse:submit')
+})
 
 const handleShareRatioChange = (row: ShareRow) => {
   syncShareAmountFromRatio(row)
@@ -1604,6 +1635,9 @@ const openRouteDetail = () => {
       if (detailMode.value === 'edit' && isDraftBillStatus(detail.billStatus)) {
         restoreDraftCache(id)
       }
+      if (detailMode.value === 'edit' && isDraftBillStatus(detail.billStatus)) {
+        restoreDraftCache(id)
+      }
       draftCacheEnabled.value = shouldCacheEditableDraft()
     })
     .catch(() => {
@@ -1685,6 +1719,43 @@ const handleSubmit = async () => {
     console.warn(error)
     const message = typeof error === 'object' && error && 'msg' in error ? String((error as { msg?: string }).msg) : '提交失败'
     ElMessage.warning(message)
+  } finally {
+    saving.value = false
+  }
+}
+
+const handleApprove = async () => {
+  if (!canApproveDetail.value) {
+    ElMessage.warning('没有审核权限')
+    return
+  }
+
+  try {
+    await ElMessageBox.confirm('确定审核通过当前报销单吗？', '审核确认', {
+      confirmButtonText: '审核通过',
+      cancelButtonText: '取消',
+      type: 'warning'
+    })
+
+    saving.value = true
+
+    const result = await approveTravelReimburse(detailForm.id, detailForm.version)
+
+    Object.assign(detailForm, {
+      version: result.version ?? detailForm.version,
+      billStatus: result.billStatus,
+      billStatusName: result.billStatusName
+    })
+
+    ElMessage.success('审核成功')
+  } catch (error) {
+    if (error !== 'cancel') {
+      console.warn(error)
+      const message = typeof error === 'object' && error && 'msg' in error
+          ? String((error as { msg?: string }).msg)
+          : '审核失败'
+      ElMessage.warning(message)
+    }
   } finally {
     saving.value = false
   }

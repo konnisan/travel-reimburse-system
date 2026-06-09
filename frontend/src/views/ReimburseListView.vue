@@ -147,22 +147,13 @@
       >
         <el-table-column type="selection" width="42" align="center" />
         <el-table-column type="index" label="序号" width="56" align="center" />
-        <el-table-column label="操作" width="156" fixed="left" align="center">
+        <el-table-column label="操作" width="132" fixed="left" align="center">
           <template #default="{ row }">
             <el-tooltip content="查看详情">
               <el-button v-if="can('reimburse:view')" link type="primary" :icon="View" @click="handleOpenDetail(row, 'view')" />
             </el-tooltip>
             <el-tooltip :content="getEditTooltip(row)">
               <el-button v-if="canEditRow(row)" link type="primary" :icon="Edit" @click="handleOpenDetail(row, 'edit')" />
-            </el-tooltip>
-            <el-tooltip content="审核">
-              <el-button
-                v-if="canApproveRow(row)"
-                link
-                type="success"
-                :icon="Check"
-                @click="handleApprove(row)"
-              />
             </el-tooltip>
             <el-tooltip content="作废">
               <el-button
@@ -225,9 +216,8 @@
 import { computed, onMounted, onUnmounted, reactive, ref } from 'vue'
 import type { FormInstance } from 'element-plus'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { Check, CircleClose, Edit, Plus, Refresh, Search, SwitchButton, View } from '@element-plus/icons-vue'
+import { CircleClose, Edit, Plus, Refresh, Search, SwitchButton, View } from '@element-plus/icons-vue'
 import {
-  approveTravelReimburse,
   invalidTravelReimburse,
   queryTravelReimburseBaseData,
   queryTravelReimbursePageList,
@@ -388,8 +378,7 @@ const userInitial = computed(() => auth.user?.displayName?.slice(0, 1) || auth.u
 
 const can = (permission: string) => auth.hasPermission(permission)
 const isAdmin = () => auth.hasRole('ADMIN')
-const canEditRow = (row: TravelReimbursePageRow) => can('reimburse:edit') && (row.billStatus === '0' || isAdmin())
-const canApproveRow = (row: TravelReimbursePageRow) => can('reimburse:approve') && row.billStatus === '1'
+const canEditRow = (row: TravelReimbursePageRow) => { return can('reimburse:edit') && row.billStatus === '0' }
 const getEditTooltip = (row: TravelReimbursePageRow) => (row.billStatus === '0' ? '编辑' : '编辑并生成新草稿')
 
 const normalizeQueryData = () => {
@@ -448,21 +437,6 @@ const handleOpenDetail = (row: TravelReimbursePageRow, mode: DetailMode) => {
     return
   }
   router.push({ path: `/reimburse/detail/${row.id}`, query: { mode } })
-}
-
-const handleApprove = async (row: TravelReimbursePageRow) => {
-  if (!canApproveRow(row)) {
-    ElMessage.warning('没有审核权限')
-    return
-  }
-  await ElMessageBox.confirm('确定审核通过当前报销单吗？', '审核确认', {
-    confirmButtonText: '审核通过',
-    cancelButtonText: '取消',
-    type: 'warning'
-  })
-  await approveTravelReimburse(row.id, row.version)
-  ElMessage.success('审核成功')
-  handleSearch()
 }
 
 const handleInvalid = async (row: TravelReimbursePageRow) => {

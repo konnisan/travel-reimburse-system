@@ -118,7 +118,7 @@ CREATE TABLE `fk_reim_main`  (
   `phone_allowance` decimal(18, 2) NULL DEFAULT 0.00 COMMENT '通讯补助',
   `remarks` varchar(1000) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NULL DEFAULT NULL COMMENT '备注信息',
   `reim_bill_no` varchar(32) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NULL DEFAULT NULL COMMENT '报销单号',
-  `bill_status` varchar(2) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NULL DEFAULT '0' COMMENT '单据状态：0草稿 1已完成 2已作废',
+  `bill_status` varchar(2) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NULL DEFAULT '0' COMMENT '单据状态：0草稿 1待审核 2已作废 3已完成',
   `version` int(11) NOT NULL DEFAULT 0 COMMENT '乐观锁版本号',
   PRIMARY KEY (`id`) USING BTREE
 ) ENGINE = InnoDB CHARACTER SET = utf8mb4 COLLATE = utf8mb4_general_ci COMMENT = '报销单主表' ROW_FORMAT = Dynamic;
