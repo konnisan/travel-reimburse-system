@@ -1,4 +1,4 @@
-<template>
+﻿<template>
   <main class="page">
     <section class="page-header">
       <div>
@@ -6,13 +6,57 @@
         <p>列表页 reimburse/list；详情页 reimburse/detail/{id}</p>
       </div>
       <div class="header-actions">
-        <div class="user-summary">
-          <el-avatar :size="30">{{ userInitial }}</el-avatar>
-          <div>
-            <strong>{{ auth.user?.displayName }}</strong>
-            <span>{{ auth.roles.join(' / ') }}</span>
+        <el-popover
+            placement="bottom-end"
+            width="520"
+            trigger="click"
+            popper-class="user-popover"
+        >
+          <template #reference>
+            <div class="user-summary user-summary-clickable">
+              <el-avatar :size="30">{{ userInitial }}</el-avatar>
+              <div>
+                <strong>{{ auth.user?.displayName }}</strong>
+                <span>{{ auth.roles.join(' / ') }}</span>
+              </div>
+            </div>
+          </template>
+
+          <div class="user-popover-content">
+            <div class="user-popover-title">
+              <strong>系统用户信息</strong>
+              <span>当前可用演示账号</span>
+            </div>
+
+            <el-table :data="userRows" border size="small">
+              <el-table-column prop="username" label="用户名" width="100" />
+              <el-table-column prop="displayName" label="显示名称" width="120" />
+
+              <el-table-column label="角色">
+                <template #default="{ row }">
+                  <el-tag
+                      v-for="role in row.roles"
+                      :key="role"
+                      size="small"
+                      type="primary"
+                      effect="light"
+                      class="role-tag"
+                  >
+                    {{ role }}
+                  </el-tag>
+                </template>
+              </el-table-column>
+
+              <el-table-column prop="status" label="状态" width="80">
+                <template #default="{ row }">
+                  <el-tag type="success" size="small" effect="light">
+                    {{ row.status }}
+                  </el-tag>
+                </template>
+              </el-table-column>
+            </el-table>
           </div>
-        </div>
+        </el-popover>
         <el-button :icon="Refresh" @click="handleReset">重置</el-button>
         <el-button
           v-if="can('reimburse:list')"
@@ -52,8 +96,9 @@
           <el-form-item label="单据状态" prop="billStatus">
             <el-select v-model="queryForm.billStatus" placeholder="请选择" clearable>
               <el-option label="草稿" value="0" />
-              <el-option label="已完成" value="1" />
+              <el-option label="待审核" value="1" />
               <el-option label="已作废" value="2" />
+              <el-option label="已完成" value="3" />
             </el-select>
           </el-form-item>
         </el-col>
@@ -102,13 +147,22 @@
       >
         <el-table-column type="selection" width="42" align="center" />
         <el-table-column type="index" label="序号" width="56" align="center" />
-        <el-table-column label="操作" width="132" fixed="left" align="center">
+        <el-table-column label="操作" width="156" fixed="left" align="center">
           <template #default="{ row }">
             <el-tooltip content="查看详情">
               <el-button v-if="can('reimburse:view')" link type="primary" :icon="View" @click="handleOpenDetail(row, 'view')" />
             </el-tooltip>
-            <el-tooltip content="编辑">
-              <el-button v-if="can('reimburse:edit')" link type="primary" :icon="Edit" @click="handleOpenDetail(row, 'edit')" />
+            <el-tooltip :content="getEditTooltip(row)">
+              <el-button v-if="canEditRow(row)" link type="primary" :icon="Edit" @click="handleOpenDetail(row, 'edit')" />
+            </el-tooltip>
+            <el-tooltip content="审核">
+              <el-button
+                v-if="canApproveRow(row)"
+                link
+                type="success"
+                :icon="Check"
+                @click="handleApprove(row)"
+              />
             </el-tooltip>
             <el-tooltip content="作废">
               <el-button
@@ -171,8 +225,9 @@
 import { computed, onMounted, onUnmounted, reactive, ref } from 'vue'
 import type { FormInstance } from 'element-plus'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { CircleClose, Edit, Plus, Refresh, Search, SwitchButton, View } from '@element-plus/icons-vue'
+import { Check, CircleClose, Edit, Plus, Refresh, Search, SwitchButton, View } from '@element-plus/icons-vue'
 import {
+  approveTravelReimburse,
   invalidTravelReimburse,
   queryTravelReimburseBaseData,
   queryTravelReimbursePageList,
@@ -308,9 +363,34 @@ const businessTypeOptions: TreeOption[] = disableNonLeafOptions([
   }
 ])
 
+const userRows = ref([
+  {
+    username: 'admin',
+    displayName: '系统管理员',
+    roles: ['ADMIN'],
+    status: '启用'
+  },
+  {
+    username: 'finance',
+    displayName: '财务专员',
+    roles: ['FINANCE'],
+    status: '启用'
+  },
+  {
+    username: 'employee',
+    displayName: '普通员工',
+    roles: ['EMPLOYEE'],
+    status: '启用'
+  }
+])
+
 const userInitial = computed(() => auth.user?.displayName?.slice(0, 1) || auth.user?.username?.slice(0, 1) || 'U')
 
 const can = (permission: string) => auth.hasPermission(permission)
+const isAdmin = () => auth.hasRole('ADMIN')
+const canEditRow = (row: TravelReimbursePageRow) => can('reimburse:edit') && (row.billStatus === '0' || isAdmin())
+const canApproveRow = (row: TravelReimbursePageRow) => can('reimburse:approve') && row.billStatus === '1'
+const getEditTooltip = (row: TravelReimbursePageRow) => (row.billStatus === '0' ? '编辑' : '编辑并生成新草稿')
 
 const normalizeQueryData = () => {
   return Object.fromEntries(
@@ -330,10 +410,18 @@ const handleSearch = async () => {
     tableData.value = []
     pagination.total = 0
     pagination.pages = 0
+    if (isAuthExpiredError(error)) return
     ElMessage.error('查询报销单失败')
   } finally {
     loading.value = false
   }
+}
+
+
+const isAuthExpiredError = (error: unknown) => {
+  if (!error || typeof error !== 'object') return false
+  const response = (error as { response?: { status?: number } }).response
+  return response?.status === 401
 }
 
 const handleReset = () => {
@@ -355,11 +443,26 @@ const handleOpenDetail = (row: TravelReimbursePageRow, mode: DetailMode) => {
     ElMessage.warning('没有查看权限')
     return
   }
-  if (mode === 'edit' && !can('reimburse:edit')) {
+  if (mode === 'edit' && !canEditRow(row)) {
     ElMessage.warning('没有编辑权限')
     return
   }
   router.push({ path: `/reimburse/detail/${row.id}`, query: { mode } })
+}
+
+const handleApprove = async (row: TravelReimbursePageRow) => {
+  if (!canApproveRow(row)) {
+    ElMessage.warning('没有审核权限')
+    return
+  }
+  await ElMessageBox.confirm('确定审核通过当前报销单吗？', '审核确认', {
+    confirmButtonText: '审核通过',
+    cancelButtonText: '取消',
+    type: 'warning'
+  })
+  await approveTravelReimburse(row.id, row.version)
+  ElMessage.success('审核成功')
+  handleSearch()
 }
 
 const handleInvalid = async (row: TravelReimbursePageRow) => {
@@ -393,8 +496,9 @@ const handleAuthExpired = () => {
 }
 
 const getBillStatusTag = (status: string) => {
-  if (status === '1') return 'success'
+  if (status === '1') return 'primary'
   if (status === '2') return 'info'
+  if (status === '3') return 'success'
   return 'warning'
 }
 
@@ -475,6 +579,41 @@ onUnmounted(() => {
   color: #64748b;
   font-size: 12px;
   line-height: 1.1;
+}
+
+.user-summary-clickable {
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.user-summary-clickable:hover {
+  border-color: #409eff;
+  background: #f0f7ff;
+}
+
+.user-popover-content {
+  display: grid;
+  gap: 12px;
+}
+
+.user-popover-title {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.user-popover-title strong {
+  font-size: 15px;
+  color: #1f2937;
+}
+
+.user-popover-title span {
+  font-size: 12px;
+  color: #64748b;
+}
+
+.role-tag {
+  margin-right: 6px;
 }
 
 .query-panel,

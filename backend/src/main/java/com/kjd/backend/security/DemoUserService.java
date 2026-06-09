@@ -23,14 +23,13 @@ public class DemoUserService {
         addUser("1", "admin", "admin123", "System Admin",
                 Arrays.asList("ADMIN"),
                 Arrays.asList("reimburse:list", "reimburse:view", "reimburse:create", "reimburse:edit",
-                        "reimburse:save", "reimburse:submit", "reimburse:invalid", "user:manage"));
+                        "reimburse:save", "reimburse:submit", "reimburse:approve", "reimburse:invalid", "user:manage"));
         addUser("2", "finance", "finance123", "Finance User",
                 Arrays.asList("FINANCE"),
-                Arrays.asList("reimburse:list", "reimburse:view", "reimburse:edit",
-                        "reimburse:save", "reimburse:submit", "reimburse:invalid"));
+                Arrays.asList("reimburse:list", "reimburse:view", "reimburse:approve", "reimburse:invalid"));
         addUser("3", "employee", "employee123", "Employee",
                 Arrays.asList("EMPLOYEE"),
-                Arrays.asList("reimburse:list", "reimburse:view", "reimburse:create", "reimburse:edit", "reimburse:save"));
+                Arrays.asList("reimburse:list", "reimburse:view", "reimburse:create", "reimburse:edit", "reimburse:save", "reimburse:submit"));
     }
 
     public AuthUser findByUsername(String username) {

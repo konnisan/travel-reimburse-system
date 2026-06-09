@@ -56,6 +56,8 @@ import com.kjd.backend.vo.TravelReimburseDetailVO;
 import com.kjd.backend.vo.TravelReimbursePageBean;
 import com.kjd.backend.vo.TravelReimbursePageVO;
 import org.springframework.beans.BeanUtils;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
@@ -175,7 +177,18 @@ public class TravelReimburseServiceImpl implements TravelReimburseService {
         if (data == null || !StringUtils.hasText(data.getId())) {
             throw new IllegalArgumentException("reimburse id is required");
         }
-        ensureDraftMain(data);
+        FkReimMain existing = mainMapper.selectById(data.getId());
+        if (existing != null && !"0".equals(existing.getBillStatus())) {
+            if (!"1".equals(existing.getBillStatus()) && !"3".equals(existing.getBillStatus())) {
+                throw new IllegalArgumentException("only draft or submitted bill can be saved");
+            }
+            if (!hasRole("ADMIN")) {
+                throw new IllegalArgumentException("submitted or completed bill can only be revised by admin");
+            }
+            reviseSubmittedBill(data, existing);
+        } else {
+            ensureDraftMain(data);
+        }
         saveDetail(data, "0", false);
 
         SaveTravelReimburseDetailVO vo = new SaveTravelReimburseDetailVO();
@@ -194,6 +207,9 @@ public class TravelReimburseServiceImpl implements TravelReimburseService {
         }
         FkReimMain old = mustGetMain(data.getId());
         if ("1".equals(old.getBillStatus())) {
+            throw new IllegalArgumentException("submitted bill cannot be submitted again");
+        }
+        if ("3".equals(old.getBillStatus())) {
             throw new IllegalArgumentException("completed bill cannot be submitted again");
         }
         if ("2".equals(old.getBillStatus())) {
@@ -206,6 +222,32 @@ public class TravelReimburseServiceImpl implements TravelReimburseService {
         SubmitTravelReimburseVO vo = new SubmitTravelReimburseVO();
         vo.setValid(true);
         vo.setMessage("submit success");
+        vo.setId(saved.getId());
+        vo.setVersion(defaultVersion(saved.getVersion()));
+        vo.setReimBillNo(saved.getReimBillNo());
+        vo.setBillStatus(saved.getBillStatus());
+        vo.setBillStatusName(statusName(saved.getBillStatus()));
+        return vo;
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public SubmitTravelReimburseVO approveTravelReimburse(InvalidTravelReimburseDTO dto) {
+        String id = dto == null || dto.getData() == null ? null : dto.getData().getId();
+        Integer version = dto == null || dto.getData() == null ? null : dto.getData().getVersion();
+        FkReimMain main = mustGetMain(id);
+        checkOptimisticVersion(version, main);
+        if (!"1".equals(main.getBillStatus())) {
+            throw new IllegalArgumentException("only submitted bill can be approved");
+        }
+        main.setBillStatus("3");
+        int updated = mainMapper.updateById(main);
+        assertOptimisticUpdated(updated);
+
+        FkReimMain saved = mustGetMain(main.getId());
+        SubmitTravelReimburseVO vo = new SubmitTravelReimburseVO();
+        vo.setValid(true);
+        vo.setMessage("approve success");
         vo.setId(saved.getId());
         vo.setVersion(defaultVersion(saved.getVersion()));
         vo.setReimBillNo(saved.getReimBillNo());
@@ -999,6 +1041,35 @@ public class TravelReimburseServiceImpl implements TravelReimburseService {
         data.setVersion(0);
     }
 
+    private void reviseSubmittedBill(TravelReimburseDetailSaveDTO data, FkReimMain old) {
+        checkOptimisticVersion(data.getVersion(), old);
+        old.setBillStatus("2");
+        int updated = mainMapper.updateById(old);
+        assertOptimisticUpdated(updated);
+
+        data.setId(uuid());
+        data.setVersion(0);
+        resetChildIds(data);
+        ensureDraftMain(data);
+    }
+
+    private void resetChildIds(TravelReimburseDetailSaveDTO data) {
+        if (data.getTripList() != null) {
+            data.getTripList().forEach(item -> item.setTripId(uuid()));
+        }
+        if (data.getSubsidyList() != null) {
+            data.getSubsidyList().forEach(item -> {
+                item.setSubsidyId(uuid());
+                if (item.getCalendarList() != null) {
+                    item.getCalendarList().forEach(calendar -> calendar.setCalendarId(uuid()));
+                }
+            });
+        }
+        if (data.getShareList() != null) {
+            data.getShareList().forEach(item -> item.setShareId(uuid()));
+        }
+    }
+
     private void checkOptimisticVersion(Integer requestVersion, FkReimMain main) {
         if (requestVersion == null) {
             throw new IllegalArgumentException("version is required, please refresh the bill and retry");
@@ -1007,6 +1078,12 @@ public class TravelReimburseServiceImpl implements TravelReimburseService {
             throw new IllegalArgumentException("bill has been modified by another user, please refresh and retry");
         }
         main.setVersion(requestVersion);
+    }
+
+    private boolean hasRole(String role) {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        return authentication != null && authentication.getAuthorities().stream()
+                .anyMatch(authority -> ("ROLE_" + role).equals(authority.getAuthority()));
     }
 
     private void assertOptimisticUpdated(int updated) {
@@ -1082,12 +1159,15 @@ public class TravelReimburseServiceImpl implements TravelReimburseService {
 
     private String statusName(String status) {
         if ("1".equals(status)) {
-            return "Completed";
+            return "待审核";
         }
         if ("2".equals(status)) {
-            return "Cancelled";
+            return "已作废";
         }
-        return "Draft";
+        if ("3".equals(status)) {
+            return "已完成";
+        }
+        return "草稿";
     }
 
     private String weekName(DayOfWeek dayOfWeek) {

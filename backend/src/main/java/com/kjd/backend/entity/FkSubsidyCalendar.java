@@ -24,7 +24,7 @@ public class FkSubsidyCalendar implements Serializable {
     private String subsidizedCities;
     @TableField("subsidized_city_number")
     private String subsidizedCityNumber;
-    @TableField(exist = false)
+    @TableField("city_type")
     private String cityType;
     @TableField("standard_meal_expenses_amount")
     private String standardMealExpensesAmount;
@@ -40,11 +40,11 @@ public class FkSubsidyCalendar implements Serializable {
     private String communicationAmount;
     @TableField("is_reimbursed")
     private String isReimbursed;
-    @TableField(exist = false)
+    @TableField("meal_checked")
     private String mealChecked;
-    @TableField(exist = false)
+    @TableField("traffic_checked")
     private String trafficChecked;
-    @TableField(exist = false)
+    @TableField("communication_checked")
     private String communicationChecked;
     @TableField("remark")
     private String remark;

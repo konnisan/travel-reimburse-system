@@ -32,6 +32,8 @@ public interface TravelReimburseService {
 
     SubmitTravelReimburseVO submitTravelReimburse(SubmitTravelReimburseDTO dto);
 
+    SubmitTravelReimburseVO approveTravelReimburse(InvalidTravelReimburseDTO dto);
+
     InvalidTravelReimburseVO cancelTravelReimburse(InvalidTravelReimburseDTO dto);
 
     TravelReimburseBaseDataVO queryTravelReimburseBaseData(QueryTravelReimburseBaseDataDTO dto);

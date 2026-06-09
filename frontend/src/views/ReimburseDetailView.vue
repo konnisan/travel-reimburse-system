@@ -1,4 +1,4 @@
-<template>
+﻿<template>
   <main class="page">
     <section class="detail-page">
       <div class="bill-shell">
@@ -88,11 +88,19 @@
                     <template #default="{ row }">{{ row.departCityName }} - {{ row.arriveCityName }}</template>
                   </el-table-column>
                   <el-table-column prop="remark" label="行程说明" min-width="220" show-overflow-tooltip />
-                  <el-table-column label="操作" width="168" align="center">
+                  <el-table-column label="操作" width="116" align="center">
                     <template #default="{ row, $index }">
-                      <el-button link type="primary" :icon="Edit" :disabled="isReadonly" @click="openTripDialog('edit', row, $index)">编辑</el-button>
-                      <el-button link type="primary" :icon="DocumentCopy" :disabled="isReadonly" @click="openTripDialog('copy', row)">复制</el-button>
-                      <el-button link type="danger" :icon="Delete" :disabled="isReadonly" @click="handleDeleteTrip($index)">删除</el-button>
+                      <div class="trip-actions">
+                        <el-tooltip content="编辑" placement="top">
+                          <el-button link type="primary" :icon="Edit" :disabled="isReadonly" @click="openTripDialog('edit', row, $index)" />
+                        </el-tooltip>
+                        <el-tooltip content="复制" placement="top">
+                          <el-button link type="primary" :icon="DocumentCopy" :disabled="isReadonly" @click="openTripDialog('copy', row)" />
+                        </el-tooltip>
+                        <el-tooltip content="删除" placement="top">
+                          <el-button link type="danger" :icon="Delete" :disabled="isReadonly" @click="handleDeleteTrip($index)" />
+                        </el-tooltip>
+                      </div>
                     </template>
                   </el-table-column>
                 </el-table>
@@ -147,6 +155,95 @@
             </section>
 
             <section class="bill-section">
+              <button class="section-title" type="button" @click="toggleSection('share')">
+                <el-icon><component :is="sectionOpen.share ? ArrowDown : ArrowRight" /></el-icon>
+                <span>费用归属及分摊</span>
+                <span class="section-amount">分摊金额：{{ formatMoney(shareTotalAmount) }}</span>
+              </button>
+              <div v-show="sectionOpen.share" class="section-body">
+                <div class="share-toolbar">
+                  <span>费用分摊</span>
+                  <div class="share-actions">
+                    <el-button plain type="primary" :disabled="isReadonly || !shareList.length" @click="handleAverageShare">均摊</el-button>
+                    <el-button plain type="primary" :icon="Plus" :disabled="isReadonly" @click="handleAddShare">添加一行</el-button>
+                  </div>
+                </div>
+                <el-table :data="shareList" border size="small" empty-text="暂无费用分摊">
+                  <el-table-column type="index" label="序号" width="70" align="center" />
+                  <el-table-column label="费用归属" min-width="220">
+                    <template #default="{ row }">
+                      <el-select v-model="row.reimCompanyId" filterable :disabled="isReadonly" placeholder="请选择费用归属公司" @change="handleShareCompanyChange(row)">
+                        <el-option v-for="company in companyOptions" :key="company.id" :label="company.name" :value="company.id" />
+                      </el-select>
+                    </template>
+                  </el-table-column>
+                  <el-table-column label="项目" min-width="220">
+                    <template #default="{ row }">
+                      <el-select v-model="row.projectId" filterable :disabled="isReadonly" placeholder="请选择项目" @change="handleShareProjectChange(row)">
+                        <el-option v-for="project in projectOptions" :key="project.id" :label="project.name" :value="project.id" />
+                      </el-select>
+                    </template>
+                  </el-table-column>
+                  <el-table-column label="分摊比例" width="170" align="right">
+                    <template #default="{ row }">
+                      <div class="share-number-cell">
+                        <el-input-number
+                          v-model="row.shareRatio"
+                          :disabled="isReadonly || row.locked"
+                          :min="0"
+                          :max="100"
+                          :precision="2"
+                          :controls="false"
+                          @change="handleShareRatioChange(row)"
+                        />
+                        <span class="share-unit">%</span>
+                      </div>
+                    </template>
+                  </el-table-column>
+                  <el-table-column label="分摊金额" width="170" align="right">
+                    <template #default="{ row }">
+                      <div class="share-number-cell">
+                        <el-input-number
+                          v-model="row.shareAmount"
+                          :disabled="isReadonly || row.locked"
+                          :min="0"
+                          :max="getShareAmountMax(row)"
+                          :precision="2"
+                          :controls="false"
+                          @change="handleShareAmountChange(row)"
+                        />
+                        <span class="share-unit">CNY</span>
+                      </div>
+                    </template>
+                  </el-table-column>
+                  <el-table-column label="操作" width="96" align="center">
+                    <template #default="{ row, $index }">
+                      <div class="share-row-actions">
+                        <el-tooltip :content="row.locked ? '解锁' : '上锁'" placement="top">
+                          <el-button
+                            link
+                            :type="row.locked ? 'warning' : 'primary'"
+                            :icon="row.locked ? Unlock : Lock"
+                            :disabled="isReadonly"
+                            @click="toggleShareLock(row)"
+                          />
+                        </el-tooltip>
+                        <el-tooltip content="删除" placement="top">
+                          <el-button link type="danger" :icon="Delete" :disabled="isReadonly || shareList.length <= 1" @click="handleDeleteShare($index)" />
+                        </el-tooltip>
+                      </div>
+                    </template>
+                  </el-table-column>
+                </el-table>
+                <div class="share-summary">
+                  <span>合计</span>
+                  <span>{{ formatPercent(shareTotalRatio) }}</span>
+                  <span>CNY {{ formatMoney(shareTotalAmount) }}</span>
+                </div>
+              </div>
+            </section>
+
+            <section class="bill-section">
               <button class="section-title" type="button" @click="toggleSection('remark')">
                 <el-icon><component :is="sectionOpen.remark ? ArrowDown : ArrowRight" /></el-icon>
                 <span>备注信息</span>
@@ -169,10 +266,20 @@
         >
           提交
         </el-button>
+
+<!--        <el-button-->
+<!--            v-if="detailMode !== 'view'  && detailForm.billStatus === '1'&& can('reimburse:audit')"-->
+<!--            type="success"-->
+<!--            :loading="saving"-->
+<!--            @click="handleApprove"-->
+<!--        >-->
+<!--          审核通过-->
+<!--        </el-button>-->
+
       </div>
     </section>
 
-    <el-dialog v-model="tripDialogVisible" :title="tripDialogTitle" width="760px">
+    <el-dialog v-model="tripDialogVisible" :title="tripDialogTitle" width="760px" class="trip-dialog">
       <el-alert
         class="trip-alert"
         type="info"
@@ -182,13 +289,15 @@
       />
       <el-form ref="tripFormRef" :model="tripForm" :rules="tripRules" label-width="92px">
         <el-row :gutter="16">
-          <el-col :span="12">
+          <el-col :span="24">
             <el-form-item label="出行人" prop="travelerId">
               <el-select v-model="tripForm.travelerId" filterable placeholder="请选择">
                 <el-option v-for="employee in employeeOptions" :key="employee.id" :label="employee.name" :value="employee.id" />
               </el-select>
             </el-form-item>
           </el-col>
+        </el-row>
+        <el-row :gutter="16">
           <el-col :span="12">
             <el-form-item label="出发城市" prop="departCityNo">
               <el-select v-model="tripForm.departCityNo" filterable placeholder="请选择">
@@ -196,8 +305,6 @@
               </el-select>
             </el-form-item>
           </el-col>
-        </el-row>
-        <el-row :gutter="16">
           <el-col :span="12">
             <el-form-item label="到达城市" prop="arriveCityNo">
               <el-select v-model="tripForm.arriveCityNo" filterable placeholder="请选择">
@@ -205,13 +312,13 @@
               </el-select>
             </el-form-item>
           </el-col>
+        </el-row>
+        <el-row :gutter="16">
           <el-col :span="12">
             <el-form-item label="出发日期" prop="departDate">
               <el-date-picker v-model="tripForm.departDate" type="date" value-format="YYYY-MM-DD" :disabled-date="disableFutureDate" placeholder="请选择" />
             </el-form-item>
           </el-col>
-        </el-row>
-        <el-row :gutter="16">
           <el-col :span="12">
             <el-form-item label="到达日期" prop="arriveDate">
               <el-date-picker v-model="tripForm.arriveDate" type="date" value-format="YYYY-MM-DD" :disabled-date="disableArrivalDate" placeholder="请选择" />
@@ -380,7 +487,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, onUnmounted, reactive, ref } from 'vue'
+import { computed, onMounted, onUnmounted, reactive, ref, watch } from 'vue'
 import type { FormInstance, FormRules } from 'element-plus'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import {
@@ -391,6 +498,8 @@ import {
   Delete,
   DocumentCopy,
   Edit,
+  Lock,
+  Unlock,
   Plus
 } from '@element-plus/icons-vue'
 import {
@@ -408,7 +517,7 @@ import { useAuthStore } from '@/stores/auth'
 import { useRoute, useRouter } from 'vue-router'
 
 type DetailMode = 'create' | 'edit' | 'view'
-type SectionKey = 'basic' | 'trip' | 'subsidy' | 'expense' | 'remark'
+type SectionKey = 'basic' | 'trip' | 'subsidy' | 'expense' | 'share' | 'remark'
 type SubsidyKind = 'meal' | 'traffic' | 'communication'
 type TripDialogMode = 'add' | 'edit' | 'copy'
 
@@ -484,6 +593,19 @@ interface SubsidyRow {
   calendarList: CalendarRow[]
 }
 
+interface ShareRow {
+  shareId: string
+  reimCompanyId: string
+  reimCompanyNo?: string
+  reimCompanyName: string
+  projectId: string
+  projectNo?: string
+  projectName: string
+  shareRatio: number
+  shareAmount: number
+  locked: boolean
+}
+
 interface DetailForm {
   id: string
   version: number
@@ -510,11 +632,13 @@ const tripDialogVisible = ref(false)
 const subsidyDialogVisible = ref(false)
 const detailMode = ref<DetailMode>('view')
 const hasUnsavedNewDraft = ref(false)
+const draftCacheEnabled = ref(false)
 const tripDialogMode = ref<TripDialogMode>('add')
 const editingTripIndex = ref(-1)
 const editingSubsidyIndex = ref(-1)
 const today = new Date().toISOString().slice(0, 10)
 const subsidyNotice = '1、请根据实际出差日期选择补助 2、出差期间当日有用餐安排的请自行核减当日餐补 3、出差期间当日有用车的，请自行核减当日交补'
+const DRAFT_CACHE_PREFIX = 'travel-reimburse:draft:'
 
 const detailForm = reactive<DetailForm>({
   id: '',
@@ -537,6 +661,7 @@ const sectionOpen = reactive<Record<SectionKey, boolean>>({
   trip: true,
   subsidy: true,
   expense: true,
+  share: true,
   remark: true
 })
 
@@ -607,7 +732,14 @@ const employeeOptions: OptionItem[] = [
   { id: '13AB7925EB808001', no: '10503', name: '姜林' }
 ]
 
-const projectOptions: OptionItem[] = [{ id: '12BC248B25083001', no: 'nonProjectRelated', name: '非项目类费用归集' }]
+const projectOptions: OptionItem[] = [
+  { id: '12BC248B25083001', no: 'nonProjectRelated', name: '非项目类费用归集' },
+  { id: 'project_east_market', no: 'HDMARKET', name: '华东区市场推广项目' },
+  { id: 'project_success_platform', no: 'CSSUPGRADE', name: '客户成功服务平台升级' },
+  { id: 'project_fee_control_phase2', no: 'FCPHASE2', name: '费控系统二期开发' },
+  { id: 'project_travel_supply_chain', no: 'TRSUPPLY', name: '航旅供应链优化' },
+  { id: 'project_it_maintenance', no: 'ITMAINT', name: '年度IT基础设施维护' }
+]
 
 const cityOptions: CityOption[] = [
   { no: '10119', name: '北京', type: '1' },
@@ -677,6 +809,7 @@ const businessTypeOptions: TreeOption[] = disableNonLeafOptions([
 
 const tripList = ref<TripRow[]>([])
 const subsidyList = ref<SubsidyRow[]>([])
+const shareList = ref<ShareRow[]>([])
 
 const isReadonly = computed(() => detailMode.value === 'view')
 const tripDialogTitle = computed(() => (tripDialogMode.value === 'edit' ? '编辑补录行程' : tripDialogMode.value === 'copy' ? '复制补录行程' : '补录行程'))
@@ -690,6 +823,8 @@ const expenseSummary = computed(() => ({
   trafficAmount: sum(subsidyList.value.map((item) => item.trafficSubsidyAmount)),
   communicationAmount: sum(subsidyList.value.map((item) => item.communicationSubsidyAmount))
 }))
+const shareTotalRatio = computed(() => round2(shareList.value.reduce((value, row) => value + Number(row.shareRatio || 0), 0)))
+const shareTotalAmount = computed(() => round2(shareList.value.reduce((value, row) => value + Number(row.shareAmount || 0), 0)))
 
 const can = (permission: string) => auth.hasPermission(permission)
 const uid = (prefix: string) => `${prefix}_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`
@@ -703,6 +838,206 @@ const isLeafBusinessType = (id: string) => {
 }
 const sum = (values: number[]) => Number(values.reduce((total, value) => total + Number(value || 0), 0).toFixed(2))
 const formatMoney = (value: number) => Number(value || 0).toFixed(2)
+const formatPercent = (value: number) => `${Number(value || 0).toFixed(2)}%`
+const round2 = (value: number) => Number(Number(value || 0).toFixed(2))
+const floor2 = (value: number) => Math.floor(Number(value || 0) * 100) / 100
+
+const makeDefaultShare = (ratio = 100): ShareRow => {
+  const company = findOption(companyOptions, detailForm.reimCompanyId) ?? companyOptions[0]
+  const project = projectOptions[0]
+  return {
+    shareId: uid('share'),
+    reimCompanyId: company.id,
+    reimCompanyNo: company.no,
+    reimCompanyName: company.name,
+    projectId: project.id,
+    projectNo: project.no,
+    projectName: project.name,
+    shareRatio: ratio,
+    shareAmount: 0,
+    locked: false
+  }
+}
+
+const ensureShareRows = () => {
+  if (!shareList.value.length) {
+    shareList.value = [makeDefaultShare()]
+  }
+  recalculateShareRows()
+}
+
+const recalculateShareRows = () => {
+  if (!shareList.value.length) return
+  const total = expenseSummary.value.subsidyAmount
+  shareList.value.forEach((row) => {
+    if (row.locked) {
+      row.shareAmount = Math.min(getShareAmountMax(row), Math.max(0, round2(row.shareAmount)))
+      syncShareRatioFromAmount(row)
+      return
+    }
+    syncShareAmountFromRatio(row)
+  })
+}
+
+const getShareAmountMax = (row: ShareRow) => {
+  const total = expenseSummary.value.subsidyAmount
+  const usedByOthers = shareList.value
+    .filter((item) => item.shareId !== row.shareId)
+    .reduce((value, item) => value + Number(item.shareAmount || 0), 0)
+  return Math.max(0, round2(total - usedByOthers))
+}
+
+const syncShareRatioFromAmount = (row: ShareRow) => {
+  const total = expenseSummary.value.subsidyAmount
+  row.shareRatio = total > 0 ? round2((Number(row.shareAmount || 0) / total) * 100) : 0
+}
+
+const syncShareAmountFromRatio = (row: ShareRow) => {
+  const total = expenseSummary.value.subsidyAmount
+  row.shareRatio = Math.min(100, Math.max(0, round2(row.shareRatio)))
+  row.shareAmount = round2(total * Number(row.shareRatio || 0) / 100)
+}
+
+const syncShareRatiosFromAmounts = (adjustRow?: ShareRow) => {
+  const total = expenseSummary.value.subsidyAmount
+  if (total <= 0) {
+    shareList.value.forEach((row) => {
+      row.shareRatio = 0
+    })
+    return
+  }
+  const tailRow = adjustRow ?? [...shareList.value].reverse().find((row) => !row.locked) ?? shareList.value[shareList.value.length - 1]
+  shareList.value
+    .filter((row) => row.shareId !== tailRow?.shareId)
+    .forEach(syncShareRatioFromAmount)
+  if (tailRow) {
+    const usedRatio = shareList.value
+      .filter((row) => row.shareId !== tailRow.shareId)
+      .reduce((value, row) => value + Number(row.shareRatio || 0), 0)
+    tailRow.shareRatio = Math.max(0, round2(100 - usedRatio))
+  }
+}
+
+const handleShareRatioChange = (row: ShareRow) => {
+  syncShareAmountFromRatio(row)
+  const maxAmount = getShareAmountMax(row)
+  if (row.shareAmount > maxAmount) {
+    row.shareAmount = maxAmount
+    syncShareRatioFromAmount(row)
+  }
+}
+
+const handleShareAmountChange = (row: ShareRow) => {
+  const maxAmount = getShareAmountMax(row)
+  row.shareAmount = Math.min(maxAmount, Math.max(0, round2(row.shareAmount)))
+  syncShareRatioFromAmount(row)
+}
+
+watch(() => expenseSummary.value.subsidyAmount, () => {
+  recalculateShareRows()
+})
+
+const handleAddShare = () => {
+  shareList.value.push(makeDefaultShare(0))
+  recalculateShareRows()
+}
+
+const handleAverageShare = () => {
+  ensureShareRows()
+  const unlockedRows = shareList.value.filter((row) => !row.locked)
+  if (!unlockedRows.length) {
+    ElMessage.warning('当前没有可均摊的未锁定行')
+    return
+  }
+  const total = expenseSummary.value.subsidyAmount
+  shareList.value
+    .filter((row) => row.locked)
+    .forEach((row) => {
+      row.shareAmount = Math.min(getShareAmountMax(row), Math.max(0, round2(row.shareAmount)))
+    })
+  const lockedAmount = shareList.value
+    .filter((row) => row.locked)
+    .reduce((value, row) => value + Number(row.shareAmount || 0), 0)
+  const amountLeft = Math.max(0, round2(total - lockedAmount))
+  const baseAmount = floor2(amountLeft / unlockedRows.length)
+  let usedAmount = 0
+  unlockedRows.forEach((row, index) => {
+    row.shareAmount = index === unlockedRows.length - 1 ? round2(amountLeft - usedAmount) : baseAmount
+    usedAmount = round2(usedAmount + row.shareAmount)
+  })
+  syncShareRatiosFromAmounts(unlockedRows[unlockedRows.length - 1])
+}
+
+const toggleShareLock = (row: ShareRow) => {
+  row.locked = !row.locked
+  if (row.locked) {
+    handleShareAmountChange(row)
+    return
+  }
+  syncShareRatioFromAmount(row)
+}
+
+const handleDeleteShare = (index: number) => {
+  if (shareList.value.length <= 1) return
+  shareList.value.splice(index, 1)
+  recalculateShareRows()
+}
+
+const handleShareCompanyChange = (row: ShareRow) => {
+  const company = findOption(companyOptions, row.reimCompanyId)
+  row.reimCompanyNo = company?.no ?? ''
+  row.reimCompanyName = company?.name ?? ''
+}
+
+const handleShareProjectChange = (row: ShareRow) => {
+  const project = findOption(projectOptions, row.projectId)
+  row.projectNo = project?.no ?? ''
+  row.projectName = project?.name ?? ''
+}
+
+const toShareRow = (item: CostShare): ShareRow => {
+  const company = findOption(companyOptions, item.reimCompanyId ?? '') ?? companyOptions[0]
+  const project = findOption(projectOptions, item.projectId ?? '') ?? projectOptions[0]
+  return {
+    shareId: item.shareId ?? uid('share'),
+    reimCompanyId: item.reimCompanyId || company.id,
+    reimCompanyNo: item.reimCompanyNo || company.no,
+    reimCompanyName: item.reimCompanyName || company.name,
+    projectId: item.projectId || project.id,
+    projectNo: item.projectNo || project.no,
+    projectName: item.projectName || project.name,
+    shareRatio: round2(Number(item.shareRatio || 0)),
+    shareAmount: round2(Number(item.shareAmount || 0)),
+    locked: false
+  }
+}
+
+const toApiShare = (row: ShareRow, index: number): CostShare => ({
+  shareId: row.shareId,
+  lineNo: index + 1,
+  reimCompanyId: row.reimCompanyId,
+  reimCompanyNo: row.reimCompanyNo,
+  reimCompanyName: row.reimCompanyName,
+  projectId: row.projectId,
+  projectNo: row.projectNo,
+  projectName: row.projectName,
+  shareRatio: row.shareRatio,
+  shareAmount: row.shareAmount
+})
+
+const validateShareRows = () => {
+  ensureShareRows()
+  if (shareTotalAmount.value !== expenseSummary.value.subsidyAmount) {
+    ElMessage.warning('费用分摊金额合计必须等于补助总金额')
+    return false
+  }
+  const invalidRow = shareList.value.find((row) => !row.reimCompanyId || !row.projectId)
+  if (invalidRow) {
+    ElMessage.warning('请完善费用分摊公司和项目')
+    return false
+  }
+  return true
+}
 
 const mealStandardByCity = (cityType?: string) => {
   if (cityType === '1') return 100
@@ -1023,21 +1358,8 @@ const toApiSubsidy = (row: SubsidyRow): SubsidyInfo => ({
 })
 
 const buildShareList = (): CostShare[] => {
-  const company = findOption(companyOptions, detailForm.reimCompanyId) ?? companyOptions[0]
-  const project = projectOptions[0]
-  return [
-    {
-      shareId: uid('share'),
-      reimCompanyId: company.id,
-      reimCompanyNo: company.no,
-      reimCompanyName: company.name,
-      projectId: project.id,
-      projectNo: project.no,
-      projectName: project.name,
-      shareRatio: 100,
-      shareAmount: expenseSummary.value.subsidyAmount
-    }
-  ]
+  ensureShareRows()
+  return shareList.value.map(toApiShare)
 }
 
 const buildDetailPayload = (): TravelReimburseDetail => {
@@ -1071,6 +1393,39 @@ const buildDetailPayload = (): TravelReimburseDetail => {
     tripList: tripList.value.map(toApiTrip),
     subsidyList: subsidyList.value.map(toApiSubsidy),
     shareList: buildShareList()
+  }
+}
+
+const draftCacheKey = (id = detailForm.id) => `${DRAFT_CACHE_PREFIX}${id}`
+
+const cacheDraftLocally = () => {
+  if (!draftCacheEnabled.value) return
+  if (!shouldCacheEditableDraft() || !detailForm.id) return
+  try {
+    localStorage.setItem(draftCacheKey(), JSON.stringify(buildDetailPayload()))
+  } catch (error) {
+    console.warn(error)
+  }
+}
+
+const clearDraftCache = (id = detailForm.id) => {
+  if (!id) return
+  localStorage.removeItem(draftCacheKey(id))
+}
+
+const restoreDraftCache = (id: string) => {
+  const cached = localStorage.getItem(draftCacheKey(id))
+  if (!cached) return false
+  try {
+    const detail = JSON.parse(cached) as TravelReimburseDetail
+    applyDetailToForm(detail)
+    hasUnsavedNewDraft.value = true
+    ElMessage.info('已恢复未保存的本地草稿')
+    return true
+  } catch (error) {
+    console.warn(error)
+    localStorage.removeItem(draftCacheKey(id))
+    return false
   }
 }
 
@@ -1142,6 +1497,8 @@ const applyDetailToForm = (detail: TravelReimburseDetail) => {
     refreshSubsidyAmounts(subsidy)
     return subsidy
   })
+  shareList.value = (detail.shareList ?? []).map(toShareRow)
+  ensureShareRows()
 }
 
 const resetDetailForm = () => {
@@ -1162,27 +1519,53 @@ const resetDetailForm = () => {
   })
   tripList.value = []
   subsidyList.value = []
+  shareList.value = [makeDefaultShare()]
+  recalculateShareRows()
 }
 
 const openDraftDetail = (id: string, redirectUrl: string) => {
+  draftCacheEnabled.value = false
   detailMode.value = 'create'
   hasUnsavedNewDraft.value = true
   resetDetailForm()
   detailForm.id = id
+  if (restoreDraftCache(id)) {
+    draftCacheEnabled.value = true
+    return
+  }
+  draftCacheEnabled.value = true
   ElMessage.info('已打开新草稿，点击保存草稿或提交后才会入库：' + redirectUrl)
 }
 
+const isDraftBillStatus = (status?: string) => String(status ?? '0') === '0'
+const shouldCacheEditableDraft = () => detailMode.value !== 'view' && isDraftBillStatus(detailForm.billStatus)
 const shouldConfirmUnsavedDraft = () => detailMode.value === 'create' && hasUnsavedNewDraft.value
+
+const handleBeforeUnload = (event: BeforeUnloadEvent) => {
+  if (!shouldCacheEditableDraft()) return
+  cacheDraftLocally()
+  event.preventDefault()
+  event.returnValue = ''
+}
+
+watch(
+  [detailForm, tripList, subsidyList, shareList],
+  () => {
+    cacheDraftLocally()
+  },
+  { deep: true }
+)
 
 const confirmDiscardDraft = async () => {
   if (!shouldConfirmUnsavedDraft()) return true
   try {
-    await ElMessageBox.confirm('当前新建草稿还没有保存或提交，关闭后不会入库。确定放弃吗？', '未保存草稿', {
+    await ElMessageBox.confirm('当前新建草稿还没有保存或提交，放弃后将清除本地草稿缓存。确定放弃吗？', '未保存草稿', {
       confirmButtonText: '放弃草稿',
       cancelButtonText: '继续编辑',
       type: 'warning'
     })
     hasUnsavedNewDraft.value = false
+    clearDraftCache()
     return true
   } catch {
     return false
@@ -1210,11 +1593,23 @@ const openRouteDetail = () => {
     openDraftDetail(id, `reimburse/detail/${id}`)
     return
   }
+  draftCacheEnabled.value = false
   detailMode.value = route.query.mode === 'edit' ? 'edit' : 'view'
   hasUnsavedNewDraft.value = false
   resetDetailForm()
   detailForm.id = id
-  queryTravelReimburseDetail(id).then(applyDetailToForm).catch(() => ElMessage.error('详情加载失败'))
+  queryTravelReimburseDetail(id)
+    .then((detail) => {
+      applyDetailToForm(detail)
+      if (detailMode.value === 'edit' && isDraftBillStatus(detail.billStatus)) {
+        restoreDraftCache(id)
+      }
+      draftCacheEnabled.value = shouldCacheEditableDraft()
+    })
+    .catch(() => {
+      draftCacheEnabled.value = false
+      ElMessage.error('详情加载失败')
+    })
 }
 
 const validateBeforeSubmit = async () => {
@@ -1224,7 +1619,7 @@ const validateBeforeSubmit = async () => {
     ElMessage.warning('请至少补录一条行程')
     return false
   }
-  return validateAllTrips()
+  return validateAllTrips() && validateShareRows()
 }
 
 const handleSaveDraft = async () => {
@@ -1232,6 +1627,7 @@ const handleSaveDraft = async () => {
     ElMessage.warning('没有保存草稿权限')
     return
   }
+  if (!validateShareRows()) return
   saving.value = true
   const detail = buildDetailPayload()
   try {
@@ -1239,7 +1635,13 @@ const handleSaveDraft = async () => {
     const savedDetail = result.detail ?? detail
     applyDetailToForm(savedDetail)
     hasUnsavedNewDraft.value = false
+    clearDraftCache(detail.id)
     detailMode.value = 'edit'
+    if (savedDetail.id && savedDetail.id !== detail.id) {
+      await router.replace({ path: `/reimburse/detail/${savedDetail.id}`, query: { mode: 'edit' } })
+      ElMessage.success('已生成新的修订草稿，原单据已作废')
+      return
+    }
     ElMessage.success('保存草稿成功')
   } catch (error) {
     console.warn(error)
@@ -1263,6 +1665,7 @@ const handleSubmit = async () => {
       detail = saved.detail ?? detail
       applyDetailToForm(detail)
       hasUnsavedNewDraft.value = false
+      clearDraftCache(detail.id)
     }
     const result = await submitTravelReimburse(detail)
     const submittedDetail: TravelReimburseDetail = {
@@ -1274,6 +1677,7 @@ const handleSubmit = async () => {
     }
     applyDetailToForm(submittedDetail)
     hasUnsavedNewDraft.value = false
+    clearDraftCache(detail.id)
     detailMode.value = 'view'
     await ElMessageBox.alert('提交成功', '提示', { confirmButtonText: '确定', type: 'success' })
     router.push('/reimburse/list')
@@ -1292,13 +1696,15 @@ const handleAuthExpired = () => {
 }
 
 const getBillStatusTag = (status: string) => {
-  if (status === '1') return 'success'
+  if (status === '1') return 'primary'
   if (status === '2') return 'info'
+  if (status === '3') return 'success'
   return 'warning'
 }
 
 onMounted(() => {
   window.addEventListener('auth:expired', handleAuthExpired)
+  window.addEventListener('beforeunload', handleBeforeUnload)
   if (auth.isAuthenticated) {
     auth.hydrateUser()
     queryTravelReimburseBaseData().catch((error) => console.warn(error))
@@ -1308,6 +1714,7 @@ onMounted(() => {
 
 onUnmounted(() => {
   window.removeEventListener('auth:expired', handleAuthExpired)
+  window.removeEventListener('beforeunload', handleBeforeUnload)
 })
 </script>
 
@@ -1420,8 +1827,76 @@ onUnmounted(() => {
   white-space: nowrap;
 }
 
+.section-amount {
+  margin-left: auto;
+  color: #64748b;
+  font-size: 13px;
+  font-weight: 500;
+}
+
 .section-body {
   padding: 14px 14px 16px;
+}
+
+.share-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin: 14px 0 8px;
+  color: #1f2937;
+  font-weight: 600;
+}
+
+.share-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.share-row-actions {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+.share-row-actions :deep(.el-button + .el-button) {
+  margin-left: 0;
+}
+
+.share-number-cell {
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 6px;
+  width: 100%;
+  white-space: nowrap;
+}
+
+.share-number-cell :deep(.el-input-number) {
+  width: 104px;
+}
+
+.share-unit {
+  color: #64748b;
+  font-size: 12px;
+  white-space: nowrap;
+}
+
+.share-summary {
+  display: grid;
+  grid-template-columns: minmax(220px, 1fr) 170px 170px 90px;
+  align-items: center;
+  margin-top: 12px;
+  padding: 12px 16px;
+  border: 1px solid #f3e6bd;
+  background: #fff8e5;
+  color: #b7791f;
+  font-weight: 600;
+}
+
+.share-summary span:nth-child(2),
+.share-summary span:nth-child(3) {
+  text-align: right;
 }
 
 .page-footer {
@@ -1440,6 +1915,22 @@ onUnmounted(() => {
 
 .trip-alert {
   margin-bottom: 12px;
+}
+
+.trip-actions {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+.trip-actions :deep(.el-button + .el-button) {
+  margin-left: 0;
+}
+
+.trip-dialog :deep(.el-select),
+.trip-dialog :deep(.el-date-editor) {
+  width: 100%;
 }
 
 .subsidy-dialog :deep(.el-dialog__body) {

@@ -77,6 +77,12 @@ public class TravelReimburseController {
         return Result.success(travelReimburseService.submitTravelReimburse(dto));
     }
 
+    @PostMapping("/fcecf/fccapi/COMM_REIMBURSE_ApproveTravelReimburse")
+    @PreAuthorize("hasAuthority('reimburse:approve')")
+    public Result<SubmitTravelReimburseVO> approveTravelReimburse(@RequestBody InvalidTravelReimburseDTO dto) {
+        return Result.success(travelReimburseService.approveTravelReimburse(dto));
+    }
+
     @PostMapping({
             "/fcecf/fccapi/COMM_REIMBURSE_CancelTravelReimburse",
             "/fcecf/fccapi/COMM_REIMBURSE_InvalidTravelReimburse"

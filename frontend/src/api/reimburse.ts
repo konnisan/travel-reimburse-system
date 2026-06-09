@@ -247,6 +247,14 @@ export function submitTravelReimburse(data: TravelReimburseDetail) {
   )
 }
 
+export function approveTravelReimburse(id: string, version?: number) {
+  return request.post<SubmitTravelReimburseResult>(
+    `${basePath}/COMM_REIMBURSE_ApproveTravelReimburse`,
+    { data: { id, version } },
+    { loading: true }
+  )
+}
+
 export function invalidTravelReimburse(id: string, version?: number, invalidReason?: string) {
   return request.post<InvalidTravelReimburseResult>(
     `${basePath}/COMM_REIMBURSE_InvalidTravelReimburse`,
