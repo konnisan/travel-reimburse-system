@@ -62,7 +62,13 @@
                   </el-col>
                   <el-col :span="8">
                     <el-form-item label="单据日期" prop="billDate">
-                      <el-date-picker v-model="detailForm.billDate" type="date" value-format="YYYY-MM-DD" placeholder="请选择" />
+                      <el-date-picker
+                        v-model="detailForm.billDate"
+                        type="date"
+                        value-format="YYYY-MM-DD"
+                        :disabled-date="disableFutureDate"
+                        placeholder="请选择"
+                      />
                     </el-form-item>
                   </el-col>
                 </el-row>

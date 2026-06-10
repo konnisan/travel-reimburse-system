@@ -140,6 +140,7 @@ public class TravelReimburseServiceImpl implements TravelReimburseService {
         CreateTravelReimburseDraftDataDTO data = dto == null ? null : dto.getData();
         String id = uuid();
         String billDate = data != null && StringUtils.hasText(data.getBillDate()) ? data.getBillDate() : LocalDate.now().format(DATE);
+        validateBillDateNotFuture(billDate);
 
         FkReimMain main = new FkReimMain();
         main.setId(id);
@@ -317,19 +318,29 @@ public class TravelReimburseServiceImpl implements TravelReimburseService {
         travelType.setSuperiorId("BT001");
 
         CityVO beijing = new CityVO();
-        beijing.setCityNo("110000");
-        beijing.setCityName("Beijing");
+        beijing.setCityNo("10119");
+        beijing.setCityName("北京");
         beijing.setCityType("1");
 
         CityVO shanghai = new CityVO();
-        shanghai.setCityNo("310000");
-        shanghai.setCityName("Shanghai");
+        shanghai.setCityNo("10621");
+        shanghai.setCityName("上海");
         shanghai.setCityType("1");
 
+        CityVO wuhan = new CityVO();
+        wuhan.setCityNo("10458");
+        wuhan.setCityName("武汉");
+        wuhan.setCityType("2");
+
         CityVO hangzhou = new CityVO();
-        hangzhou.setCityNo("330100");
-        hangzhou.setCityName("Hangzhou");
+        hangzhou.setCityNo("10216");
+        hangzhou.setCityName("杭州");
         hangzhou.setCityType("2");
+
+        CityVO jingzhou = new CityVO();
+        jingzhou.setCityNo("10455");
+        jingzhou.setCityName("荆州");
+        jingzhou.setCityType("3");
 
         ProjectVO project = new ProjectVO();
         project.setProjectId("P001");
@@ -340,7 +351,7 @@ public class TravelReimburseServiceImpl implements TravelReimburseService {
         vo.setDepartmentList(Collections.singletonList(department));
         vo.setEmployeeList(Collections.singletonList(employee));
         vo.setBusinessTypeList(Arrays.asList(rootType, travelType));
-        vo.setCityList(Arrays.asList(beijing, shanghai, hangzhou));
+        vo.setCityList(Arrays.asList(beijing, shanghai, wuhan, hangzhou, jingzhou));
         vo.setProjectList(Collections.singletonList(project));
         redisSupportService.setBaseDataCache(vo);
         return vo;
@@ -415,6 +426,7 @@ public class TravelReimburseServiceImpl implements TravelReimburseService {
     }
 
     private void saveDetail(TravelReimburseDetailSaveDTO data, String status, boolean generateBillNo) {
+        validateBillDateNotFuture(data.getBillDate());
         validateCalendar(flatCalendars(data.getSubsidyList()));
         validateTripDuplicate(data.getTripList());
 
@@ -757,6 +769,8 @@ public class TravelReimburseServiceImpl implements TravelReimburseService {
         subsidy.setRoute(defaultText(trip.getDepartureCityName(), "") + "-" + defaultText(trip.getArrivalCityName(), ""));
         subsidy.setSubsidyCityNo(trip.getArrivalCityNo());
         subsidy.setSubsidyCityName(trip.getArrivalCityName());
+        String cityType = cityTypeByNo(trip.getArrivalCityNo());
+        BigDecimal mealStandard = mealStandardByCityType(cityType);
         List<SubsidyCalendarDTO> calendars = new ArrayList<>();
         for (LocalDate day = start; !day.isAfter(end); day = day.plusDays(1)) {
             SubsidyCalendarDTO calendar = new SubsidyCalendarDTO();
@@ -765,10 +779,10 @@ public class TravelReimburseServiceImpl implements TravelReimburseService {
             calendar.setWeekName(weekName(day.getDayOfWeek()));
             calendar.setCityNo(trip.getArrivalCityNo());
             calendar.setCityName(trip.getArrivalCityName());
-            calendar.setCityType("1");
+            calendar.setCityType(cityType);
             calendar.setMealChecked(true);
-            calendar.setMealStandardAmount(new BigDecimal("100.00"));
-            calendar.setMealAmount(new BigDecimal("100.00"));
+            calendar.setMealStandardAmount(mealStandard);
+            calendar.setMealAmount(mealStandard);
             calendar.setTrafficChecked(true);
             calendar.setTrafficStandardAmount(new BigDecimal("40.00"));
             calendar.setTrafficAmount(new BigDecimal("40.00"));
@@ -812,6 +826,26 @@ public class TravelReimburseServiceImpl implements TravelReimburseService {
         subsidy.setMealSubsidyAmount(money(meal));
         subsidy.setTrafficSubsidyAmount(money(traffic));
         subsidy.setCommunicationSubsidyAmount(money(communication));
+    }
+
+    private String cityTypeByNo(String cityNo) {
+        if ("10119".equals(cityNo) || "10621".equals(cityNo)) {
+            return "1";
+        }
+        if ("10458".equals(cityNo) || "10216".equals(cityNo)) {
+            return "2";
+        }
+        return "3";
+    }
+
+    private BigDecimal mealStandardByCityType(String cityType) {
+        if ("1".equals(cityType)) {
+            return new BigDecimal("100.00");
+        }
+        if ("2".equals(cityType)) {
+            return new BigDecimal("80.00");
+        }
+        return new BigDecimal("50.00");
     }
 
     private AmountSummary summarize(List<SubsidyInfoDTO> subsidies) {
@@ -889,6 +923,16 @@ public class TravelReimburseServiceImpl implements TravelReimburseService {
                     throw new IllegalArgumentException("same traveler trip dates cannot overlap");
                 }
             }
+        }
+    }
+
+    private void validateBillDateNotFuture(String billDate) {
+        if (!StringUtils.hasText(billDate)) {
+            return;
+        }
+        LocalDate date = parseLocalDate(billDate, "bill date is required");
+        if (date.isAfter(LocalDate.now())) {
+            throw new IllegalArgumentException("bill date cannot be later than today");
         }
     }
 

@@ -140,7 +140,6 @@
         :data="tableData"
         border
         stripe
-        height="486"
         size="small"
         empty-text="暂无数据"
         @selection-change="handleSelectionChange"
@@ -506,6 +505,8 @@ onUnmounted(() => {
 <style scoped>
 .page {
   min-height: 100vh;
+  display: flex;
+  flex-direction: column;
   padding: 18px 22px 30px;
   background: #f5f7fa;
   color: #1f2937;
@@ -620,6 +621,7 @@ onUnmounted(() => {
 }
 
 .table-card {
+  flex: 1;
   padding-bottom: 14px;
 }
 
